@@ -1,0 +1,13 @@
+card: "//div[@class='items-with-smart-groups']/div[contains(@class, 'andes-card')]"
+
+fields:
+  title: "./div[contains(@class, 'content')]//h3/a/text()"
+  original_price: ".//div[contains(@class, 'price')]/s/span[contains(@class, 'fraction')]/text()"
+  current_price: ".//div[contains(@class, 'price')]/div[contains(@class, 'price__current')]//span[contains(@class, 'fraction')]/text()"
+  currency: ".//div[contains(@class, 'price')]/div[contains(@class, 'price__current')]//span[contains(@class, 'currency-symbol')]/text()"
+  pub_url: "./div[contains(@class, 'content')]//h3/a/@href"
+  seller: ".//div[contains(@class, 'content')]/span[contains(@class, 'seller')]/text()"
+  brand: ".//div[contains(@class, 'content')]/span[contains(@class, 'brand')]/text()"
+  rating: ".//div[contains(@class, 'content')]//div[contains(@class, 'reviews')]/span[contains(@class, 'rating')]/text()"
+  reviews: ".//div[contains(@class, 'content')]//div[contains(@class, 'reviews')]/span[contains(@class, 'reviews__total')]/text()"
+next_page: "//ul[contains(@class, 'pagination')]/li[contains(@class, 'button--next')]/a/@href"

@@ -5,6 +5,9 @@ description = "Challenge - Scalable Scraping with GenAI Validation"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "boto3>=1.40.16",
+    "python-decouple>=3.8",
+    "pyyaml>=6.0.2",
     "scrapy>=2.13.3",
 ]
 
