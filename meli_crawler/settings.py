@@ -1,3 +1,4 @@
+from decouple import config
 # Scrapy settings for meli_crawler project
 #
 # For simplicity, this file contains only settings considered important or
@@ -99,11 +100,22 @@ DEFAULT_REQUEST_HEADERS = {
 
 # Enable and configure HTTP caching (disabled by default)
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html#httpcache-middleware-settings
-#HTTPCACHE_ENABLED = True
-#HTTPCACHE_EXPIRATION_SECS = 0
-#HTTPCACHE_DIR = "httpcache"
-#HTTPCACHE_IGNORE_HTTP_CODES = []
-#HTTPCACHE_STORAGE = "scrapy.extensions.httpcache.FilesystemCacheStorage"
+HTTPCACHE_ENABLED = True
+HTTPCACHE_EXPIRATION_SECS = 3600
+HTTPCACHE_DIR = "httpcache"
+HTTPCACHE_IGNORE_HTTP_CODES = [503, 504, 505, 500, 403, 404, 408, 429]
+HTTPCACHE_STORAGE = "scrapy.extensions.httpcache.FilesystemCacheStorage"
 
 # Set settings whose default value is deprecated to a future-proof value
 FEED_EXPORT_ENCODING = "utf-8"
+ZYTE_API_KEY = config("ZYTE_API_KEY")
+
+# Configuración S3
+AWS_ACCESS_KEY_ID = config("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = config("AWS_SECRET_ACCESS_KEY")
+AWS_REGION_NAME = config("AWS_DEFAULT_REGION")
+S3_BUCKET = config("S3_BUCKET")
+
+S3PIPELINE_EXPORT_FORMAT = 'csv'
+S3PIPELINE_EXPORT_ENCODING = 'utf-8'
+
