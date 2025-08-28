@@ -32,8 +32,3 @@ pytest-cov>=4.0.0                # Coverage reporting
 black>=23.0.0                    # Code formatting
 flake8>=6.0.0                    # Linting
 mypy>=1.0.0                      # Type checking
-
-# Optional: Alternative AI providers
-# cohere>=4.0.0                  # Cohere API client
-# huggingface-hub>=0.16.0        # Hugging Face models
-# transformers>=4.30.0            # Hugging Face transformers

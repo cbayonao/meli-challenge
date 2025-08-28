@@ -3,7 +3,7 @@ name = "meli-challenge"
 version = "1.0.0"
 description = "Web scraping solution for MercadoLibre Uruguay using Scrapy, AWS services, and AI validation"
 authors = [
-    {name = "Meli Challenge Team", email = "team@melichallenge.com"}
+    {name = "Camilo Bayona", email = "drcamilob@live.com"}
 ]
 readme = "README.md"
 requires-python = ">=3.11"
@@ -23,7 +23,7 @@ dependencies = [
     "numpy>=1.24.0",
     "pydantic>=2.0.0",
     "jsonschema>=4.17.0",
-    "click>=8.1.0"
+    "click>=8.1.0",
 ]
 
 [project.optional-dependencies]

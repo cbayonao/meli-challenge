@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  meli-crawler:
+    # Development overrides
+    environment:
+      # Override for development
+      - SCRAPY_LOG_LEVEL=DEBUG
+      - SCRAPY_CONCURRENT_REQUESTS=8
+      - SCRAPY_DOWNLOAD_DELAY=2
+      
+      # Development spider limits
+      - MAX_PAGES=5
+      - MAX_ITEMS=100
+      - MAX_BATCHES=10
+      - MAX_MESSAGES_PER_BATCH=5
+      - MAX_RETRIES=2
+    
+    # Development volumes
+    volumes:
+      # Mount source code for development
+      - .:/app
+      # Exclude virtual environment and cache
+      - /app/.venv
+      - /app/__pycache__
+      - /app/.scrapy
+      - /app/*.csv
+      - /app/logs
+      - /app/data
+    
+    # Development command
+    command: ["python", "-u", "run_spiders.py"]
+    
+    # Development ports (if you want to expose any)
+    # ports:
+    #   - "8000:8000"
+    
+    # Development restart policy
+    restart: "no"
