@@ -209,7 +209,7 @@ graph LR
 
 ```bash
 # Clone the repository
-git clone <your-repo-url>
+git clone git@github.com:cbayonao/meli-challenge.git
 cd meli-challenge
 
 # Install dependencies
