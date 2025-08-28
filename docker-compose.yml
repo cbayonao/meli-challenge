@@ -1,0 +1,77 @@
+version: '3.8'
+
+services:
+  meli-crawler:
+    build: .
+    container_name: meli-crawler
+    environment:
+      # AWS Configuration
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
+      
+      # DynamoDB Configuration
+      - DYNAMODB_REGION=${DYNAMODB_REGION:-us-east-1}
+      - DYNAMODB_TABLE_NAME=${DYNAMODB_TABLE_NAME}
+      
+      # SQS Configuration
+      - SQS_QUEUE_URL=${SQS_QUEUE_URL}
+      - SQS_REGION=${SQS_REGION:-us-east-1}
+      
+      # Zyte API Configuration
+      - ZYTE_API_KEY=${ZYTE_API_KEY}
+      
+      # Scrapy Configuration
+      - SCRAPY_LOG_LEVEL=${SCRAPY_LOG_LEVEL:-INFO}
+      - SCRAPY_CONCURRENT_REQUESTS=${SCRAPY_CONCURRENT_REQUESTS:-16}
+      - SCRAPY_DOWNLOAD_DELAY=${SCRAPY_DOWNLOAD_DELAY:-1}
+      
+      # Spider Limits
+      - MAX_PAGES=${MAX_PAGES:-20}
+      - MAX_ITEMS=${MAX_ITEMS:-2000}
+      - MAX_BATCHES=${MAX_BATCHES:-100}
+      - MAX_MESSAGES_PER_BATCH=${MAX_MESSAGES_PER_BATCH:-10}
+      - MAX_RETRIES=${MAX_RETRIES:-3}
+    
+    volumes:
+      # Mount logs directory for persistent logging
+      - ./logs:/app/logs
+      # Mount data directory for CSV exports
+      - ./data:/app/data
+      # Mount config files if needed
+      - ./meli_crawler/config:/app/meli_crawler/config:ro
+    
+    networks:
+      - meli-network
+    
+    restart: unless-stopped
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "python", "healthcheck.py"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: Add a simple web interface for monitoring
+  # You can uncomment this if you want to add a web UI later
+  # web-monitor:
+  #   image: nginx:alpine
+  #   container_name: meli-web-monitor
+  #   ports:
+  #     - "8080:80"
+  #   volumes:
+  #     - ./web:/usr/share/nginx/html:ro
+  #   networks:
+  #     - meli-network
+  #   depends_on:
+  #     - meli-crawler
+
+networks:
+  meli-network:
+    driver: bridge
+
+volumes:
+  logs:
+  data:

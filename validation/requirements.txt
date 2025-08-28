@@ -1,0 +1,39 @@
+# AI Validation System Requirements
+# Core dependencies for the Generative AI validation system
+
+# AI Provider Libraries
+openai>=1.0.0                    # OpenAI API client
+anthropic>=0.18.0                # Anthropic Claude API client
+google-generativeai>=0.3.0       # Google Gemini API client
+
+# Async support
+aiohttp>=3.8.0                   # Async HTTP client
+asyncio-throttle>=1.0.0          # Rate limiting for API calls
+
+# Data processing
+pandas>=2.0.0                    # Data manipulation and analysis
+numpy>=1.24.0                    # Numerical computing
+
+# Validation and schema
+pydantic>=2.0.0                  # Data validation using Python type annotations
+jsonschema>=4.17.0               # JSON Schema validation
+
+# Utilities
+python-decouple>=3.8             # Environment variable management
+pyyaml>=6.0                      # YAML configuration files
+click>=8.1.0                     # Command line interface creation
+
+# Testing
+pytest>=7.0.0                    # Testing framework
+pytest-asyncio>=0.21.0           # Async testing support
+pytest-cov>=4.0.0                # Coverage reporting
+
+# Development
+black>=23.0.0                    # Code formatting
+flake8>=6.0.0                    # Linting
+mypy>=1.0.0                      # Type checking
+
+# Optional: Alternative AI providers
+# cohere>=4.0.0                  # Cohere API client
+# huggingface-hub>=0.16.0        # Hugging Face models
+# transformers>=4.30.0            # Hugging Face transformers
