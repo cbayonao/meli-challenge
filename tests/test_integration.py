@@ -12,7 +12,7 @@ import base64
 from datetime import datetime
 
 # Import the components to test
-from meli_crawler.spiders.meli_uy_identify import MeliUyIdentifySpider
+from meli_crawler.spiders.meli_uy_identify import MeliUySpider
 from meli_crawler.spiders.meli_uy_collect import MeliUyCollectSpider
 from meli_crawler.pipelines import (
     ValidationPipeline,
