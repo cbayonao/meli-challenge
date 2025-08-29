@@ -25,7 +25,7 @@ Meli Challenge is a production-ready web scraping system designed to extract pro
 1. **Identification Stage**: Discovers and catalogs product listings
 2. **Collection Stage**: Extracts detailed product information using Zyte API
 
-The system integrates with AWS services (DynamoDB, SQS) for data storage and message queuing, with comprehensive testing, Docker containerization, and CI/CD pipeline deployment.
+The system integrates with AWS services (DynamoDB, SQS) for data storage and message queuing, with comprehensive testing and **Serverless Framework deployment**.
 
 ## 🏗️ Architecture
 
@@ -63,7 +63,7 @@ graph TB
     end
 
     subgraph "Infrastructure"
-        ECS[ECS Fargate]
+        LAMBDA[Lambda Functions]
         VPC[VPC + Subnets]
         ALB[Application Load Balancer]
         CW[CloudWatch]
@@ -86,10 +86,10 @@ graph TB
     COL --> COLLECT
     COLLECT --> DDB
     
-    SEC --> ECS
-    ECS --> VPC
-    ECS --> ALB
-    ECS --> CW
+    SEC --> LAMBDA
+    LAMBDA --> VPC
+    LAMBDA --> API
+    LAMBDA --> CW
 ```
 
 ### **Data Flow Architecture**
@@ -172,31 +172,31 @@ graph LR
 - 🗄️ **DynamoDB**: Primary data storage with optimized schemas
 - 📨 **SQS**: Message queuing for asynchronous processing
 - 🔐 **Secrets Manager**: Secure credential management
-- ☁️ **ECS Fargate**: Containerized deployment
+- ☁️ **AWS Lambda**: Serverless function execution
 - 📊 **CloudWatch**: Monitoring and alerting
 
 ### **Advanced Features**
 - 🌐 **Zyte API Integration**: Browser emulation and JavaScript rendering
-- 🐳 **Docker Containerization**: Consistent deployment environments
+- 🚀 **Serverless Framework**: Modern deployment and infrastructure management
 - 🧪 **Comprehensive Testing**: Unit, integration, and performance tests
 - 🚀 **CI/CD Pipeline**: Automated testing and deployment
-- 📈 **Auto-scaling**: ECS service auto-scaling based on metrics
+- 📈 **Auto-scaling**: Lambda concurrency and DynamoDB auto-scaling
 - 🔒 **Security**: IAM roles, VPC isolation, HTTPS endpoints
 
 ## 📋 Prerequisites
 
 ### **Required Software**
 - **Python 3.11+**
-- **Docker & Docker Compose**
+- **Python & Scrapy**
 - **AWS CLI** (for deployment)
-- **Terraform** (for infrastructure)
+- **Serverless Framework** (for infrastructure)
 - **uv** (Python package manager)
 
 ### **Required AWS Services**
 - **AWS Account** with appropriate permissions
 - **DynamoDB Table** for data storage
 - **SQS Queue** for message processing
-- **ECS Cluster** for container deployment
+- **Lambda Functions** for serverless execution
 - **Secrets Manager** for credentials
 
 ### **Required API Keys**
@@ -213,27 +213,38 @@ git clone git@github.com:cbayonao/meli-challenge.git
 cd meli-challenge
 
 # Install dependencies
-uv pip install -e .
+pip install -r requirements.txt
 
 # Setup environment
 cp env.example .env
 # Edit .env with your credentials
 ```
 
-### **2. Run with Docker (Recommended)**
+### **2. Run Spiders Locally**
 
 ```bash
-# Setup Docker environment
-./setup-docker.sh
+# Run identification spider
+scrapy crawl meli-uy-identify
 
-# Start the application
-make up
+# Run collection spider
+scrapy crawl meli-uy-collect
 
-# Check status
-make status
+# Run with custom settings
+scrapy crawl meli-uy-identify -s LOG_LEVEL=INFO
+scrapy crawl meli-uy-collect -s MAX_BATCHES=5
+```
 
-# View logs
-make logs
+### **3. Deploy to AWS (Serverless)**
+
+```bash
+# Setup Serverless Framework
+make serverless-setup
+
+# Deploy to development
+make serverless-deploy
+
+# Deploy to production
+make serverless-deploy-prod
 ```
 
 ### **3. Run Locally**
@@ -266,16 +277,19 @@ meli-challenge/
 │   ├── test_pipelines.py         # Pipeline unit tests
 │   ├── test_integration.py       # Integration tests
 │   └── test_utils.py             # Test utilities
-├── 📁 infrastructure/            # Terraform IaC
-│   ├── main.tf                   # Main infrastructure
-│   └── 📁 modules/               # Reusable modules
-├── 📁 .aws/                      # AWS task definitions
+├── 📁 handlers/                  # Lambda function handlers
+│   ├── identification.py         # Identification spider handler
+│   ├── collection.py             # Collection spider handler
+│   ├── validation.py             # Data validation handler
+│   └── monitoring.py             # Health monitoring handler
+
 ├── 📁 .github/                   # GitHub Actions CI/CD
-├── 🐳 Dockerfile                 # Container definition
-├── 🐳 docker-compose.yml         # Local development
-├── 🐳 docker-compose.override.yml # Development overrides
 ├── 📋 Makefile                   # Build automation
-├── 🚀 deploy.sh                  # Deployment script
+├── 🚀 deploy-serverless.sh        # Serverless deployment script
+├── 📋 serverless.yml              # Serverless configuration
+├── 📋 serverless.dev.yml          # Development configuration
+├── 📋 serverless.prod.yml         # Production configuration
+├── 📦 package.json                # Node.js dependencies
 └── 📖 README.md                  # This file
 ```
 
@@ -371,51 +385,28 @@ scrapy crawl meli-uy-collect \
   -a max_retries=5
 ```
 
-### **Docker Commands**
 
-#### **Development Mode**
-```bash
-# Start development environment
-make dev-up
-
-# View development logs
-make dev-logs
-
-# Access development shell
-make dev-shell
-
-# Stop development environment
-make dev-down
-```
-
-#### **Production Mode**
-```bash
-# Start production environment
-make prod-up
-
-# View production logs
-make prod-logs
-
-# Check production status
-make status
-
-# Stop production environment
-make prod-down
-```
 
 ### **Makefile Commands**
 
 ```bash
-# Build and run
-make build          # Build Docker image
-make up            # Start services
-make down          # Stop services
-make restart       # Restart services
+# Development and testing
+make test          # Run all tests
+make test-unit     # Run unit tests only
+make test-coverage # Run tests with coverage
+make test-report   # Generate test report
 
-# Development
-make dev-up        # Start development environment
-make dev-shell     # Access development container
-make dev-logs      # View development logs
+# Validation system
+make validation-setup    # Setup AI validation system
+make validation-test     # Test AI provider connection
+make validation-run      # Run validation on sample data
+make validation-report   # Generate validation report
+
+# Utilities
+make setup-dirs    # Create necessary directories
+make setup-env     # Setup environment from template
+make clean         # Clean build artifacts
+make deploy        # Deploy to AWS
 
 # Testing
 make test          # Run all tests
@@ -548,38 +539,35 @@ def test_price_normalization(self):
 
 #### **1. Infrastructure Setup**
 ```bash
-# Initialize Terraform
-cd infrastructure
-terraform init
+# Setup Serverless Framework
+make serverless-setup
 
-# Plan deployment
-terraform plan -var="environment=staging"
+# Deploy to development
+make serverless-deploy
 
-# Apply infrastructure
-terraform apply -var="environment=staging"
+# Deploy to production
+make serverless-deploy-prod
 ```
 
 #### **2. Application Deployment**
 ```bash
-# Deploy application
-./deploy.sh --environment staging --region us-east-1
+# Deploy with Serverless Framework
+./deploy-serverless.sh deploy staging
 
 # Check deployment status
-aws ecs describe-services \
-  --cluster meli-crawler-staging \
-  --services meli-crawler-staging
+npx serverless info --stage staging
 ```
 
 #### **3. CI/CD Pipeline**
 The project includes GitHub Actions workflows for:
 - **Automated Testing**: Unit tests, integration tests, security scans
-- **Docker Builds**: Multi-platform image building
+- **Multi-Platform Builds**: Cross-platform compatibility
 - **AWS Deployment**: Automatic deployment to staging/production
 - **Monitoring**: Post-deployment health checks
 
-### **Docker Deployment**
+### **Deployment Options**
 
-#### **Production Docker Compose**
+#### **Production Deployment**
 ```yaml
 version: '3.8'
 services:
@@ -623,7 +611,7 @@ if __name__ == '__main__':
 
 ### **CloudWatch Metrics**
 
-- **ECS Service Metrics**: CPU, Memory, Network
+- **Lambda Metrics**: Invocations, errors, duration, throttles
 - **Application Metrics**: Request count, error rate, latency
 - **Custom Metrics**: Items processed, pipeline success rate
 
@@ -643,10 +631,8 @@ self.logger.debug(f"Pipeline result: {result}")
 ### **Health Checks**
 
 ```bash
-# Check ECS service health
-aws ecs describe-services \
-  --cluster meli-crawler-production \
-  --services meli-crawler-production
+# Check Lambda function health
+npx serverless logs -f function-name --tail
 
 # Check DynamoDB table status
 aws dynamodb describe-table \
@@ -764,9 +750,9 @@ black --check meli_crawler/
 
 ### **Documentation**
 - [Scrapy Documentation](https://docs.scrapy.org/)
-- [AWS ECS Documentation](https://docs.aws.amazon.com/ecs/)
-- [Terraform Documentation](https://www.terraform.io/docs)
-- [Docker Documentation](https://docs.docker.com/)
+- [AWS Lambda Documentation](https://docs.aws.amazon.com/lambda/)
+- [Serverless Framework Documentation](https://www.serverless.com/framework/docs/)
+
 
 ### **Related Projects**
 - [Scrapy-Zyte-API](https://github.com/scrapy-plugins/scrapy-zyte-api)
@@ -776,7 +762,7 @@ black --check meli_crawler/
 ### **Community**
 - [Scrapy Community](https://scrapy.org/community/)
 - [AWS Developer Community](https://aws.amazon.com/developer/)
-- [Terraform Community](https://www.terraform.io/community)
+- [Serverless Community](https://www.serverless.com/community/)
 
 ## 📄 License
 

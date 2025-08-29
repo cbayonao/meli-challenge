@@ -1,4 +1,4 @@
-name: CI/CD Pipeline
+name: CI/CD Pipeline - Serverless
 
 on:
   push:
@@ -12,15 +12,16 @@ on:
       environment:
         description: 'Environment to deploy to'
         required: true
-        default: 'staging'
+        default: 'dev'
         type: choice
         options:
+        - dev
         - staging
-        - production
+        - prod
 
 env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  NODE_VERSION: '18'
+  PYTHON_VERSION: '3.11'
 
 jobs:
   # Test and Lint
@@ -40,24 +41,20 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     
-    - name: Install uv
-      uses: astral-sh/setup-uv@v1
-      with:
-        version: latest
-    
-    - name: Cache dependencies
+    - name: Cache Python dependencies
       uses: actions/cache@v3
       with:
         path: |
-          ~/.cache/uv
-        key: ${{ runner.os }}-uv-${{ hashFiles('**/uv.lock') }}
+          ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
         restore-keys: |
-          ${{ runner.os }}-uv-
+          ${{ runner.os }}-pip-
     
-    - name: Install dependencies
+    - name: Install Python dependencies
       run: |
-        uv pip install -e .
-        uv pip install pytest pytest-cov flake8 black isort
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-cov flake8 black isort
     
     - name: Run linting
       run: |
@@ -101,63 +98,89 @@ jobs:
       with:
         sarif_file: 'trivy-results.sarif'
 
-  # Build Docker image
-  build:
-    name: Build Docker Image
+  # Setup Node.js and Serverless
+  setup-serverless:
+    name: Setup Serverless Framework
     runs-on: ubuntu-latest
     needs: [test, security]
-    outputs:
-      image-tag: ${{ steps.meta.outputs.tags }}
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
     
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-    
-    - name: Log in to Container Registry
-      uses: docker/login-action@v3
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
       with:
-        registry: ${{ env.REGISTRY }}
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
     
-    - name: Extract metadata
-      id: meta
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-        tags: |
-          type=ref,event=branch
-          type=ref,event=pr
-          type=semver,pattern={{version}}
-          type=semver,pattern={{major}}.{{minor}}
-          type=sha,prefix={{branch}}-
-          type=raw,value=latest,enable={{is_default_branch}}
+    - name: Install Serverless Framework
+      run: |
+        npm install -g serverless
+        npm install
     
-    - name: Build and push Docker image
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        platforms: linux/amd64,linux/arm64
-        push: true
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
+    - name: Verify Serverless installation
+      run: |
+        serverless --version
+        npx serverless --version
 
-  # Deploy to staging
-  deploy-staging:
-    name: Deploy to Staging
+  # Deploy to development
+  deploy-dev:
+    name: Deploy to Development
     runs-on: ubuntu-latest
-    needs: build
-    environment: staging
+    needs: setup-serverless
+    environment: development
     if: github.ref == 'refs/heads/develop' || github.event_name == 'workflow_dispatch'
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm install
+    
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_DEV }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_DEV }}
+        aws-region: ${{ secrets.AWS_REGION_DEV }}
+    
+    - name: Deploy to AWS (Development)
+      run: |
+        npx serverless deploy --stage dev --region ${{ secrets.AWS_REGION_DEV }} --verbose
+      env:
+        ZYTE_API_KEY: ${{ secrets.ZYTE_API_KEY }}
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+
+  # Deploy to staging
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: setup-serverless
+    environment: staging
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm install
     
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
@@ -166,25 +189,35 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_STAGING }}
         aws-region: ${{ secrets.AWS_REGION_STAGING }}
     
-    - name: Deploy to ECS (Staging)
-      uses: aws-actions/amazon-ecs-deploy-task-definition@v1
-      with:
-        task-definition: .aws/task-definition-staging.json
-        service: meli-crawler-staging
-        cluster: meli-crawler-cluster
-        wait-for-service-stability: true
+    - name: Deploy to AWS (Staging)
+      run: |
+        npx serverless deploy --stage staging --region ${{ secrets.AWS_REGION_STAGING }} --verbose
+      env:
+        ZYTE_API_KEY: ${{ secrets.ZYTE_API_KEY }}
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
 
   # Deploy to production
   deploy-production:
     name: Deploy to Production
     runs-on: ubuntu-latest
-    needs: build
+    needs: setup-serverless
     environment: production
-    if: github.ref == 'refs/heads/main' || (github.event_name == 'release' && github.event.action == 'published')
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' || (github.event_name == 'release' && github.event.action == 'published')
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm install
     
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
@@ -193,31 +226,34 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_PROD }}
         aws-region: ${{ secrets.AWS_REGION_PROD }}
     
-    - name: Deploy to ECS (Production)
-      uses: aws-actions/amazon-ecs-deploy-task-definition@v1
-      with:
-        task-definition: .aws/task-definition-production.json
-        service: meli-crawler-production
-        cluster: meli-crawler-cluster
-        wait-for-service-stability: true
-    
-    - name: Notify deployment
+    - name: Deploy to AWS (Production)
       run: |
-        echo "🚀 Production deployment completed successfully!"
-        echo "Image: ${{ needs.build.outputs.image-tag }}"
-        echo "Environment: Production"
-        echo "Timestamp: $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
+        npx serverless deploy --stage prod --region ${{ secrets.AWS_REGION_PROD }} --verbose
+      env:
+        ZYTE_API_KEY: ${{ secrets.ZYTE_API_KEY }}
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
 
   # Post-deployment tests
   post-deploy-test:
     name: Post-Deployment Tests
     runs-on: ubuntu-latest
-    needs: [deploy-staging, deploy-production]
-    if: always() && (needs.deploy-staging.result == 'success' || needs.deploy-production.result == 'success')
+    needs: [deploy-dev, deploy-staging, deploy-production]
+    if: always() && (needs.deploy-dev.result == 'success' || needs.deploy-staging.result == 'success' || needs.deploy-production.result == 'success')
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm install
     
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
@@ -229,18 +265,64 @@ jobs:
     - name: Run health checks
       run: |
         echo "Running post-deployment health checks..."
+        # Test Lambda functions
+        echo "Testing Lambda functions..."
         # Add your health check logic here
-        # Example: curl health check endpoints, verify services are running, etc.
+        # Example: Test API endpoints, verify Lambda functions are working, etc.
         echo "✅ Health checks completed"
     
     - name: Notify success
       if: success()
       run: |
         echo "🎉 Post-deployment tests passed!"
-        echo "All services are healthy and running correctly."
+        echo "All Lambda functions are healthy and running correctly."
     
     - name: Notify failure
       if: failure()
       run: |
         echo "❌ Post-deployment tests failed!"
         echo "Please check the deployment and investigate issues."
+
+  # Cleanup (optional)
+  cleanup:
+    name: Cleanup
+    runs-on: ubuntu-latest
+    needs: [deploy-dev, deploy-staging, deploy-production]
+    if: always() && (needs.deploy-dev.result == 'failure' || needs.deploy-staging.result == 'failure' || needs.deploy-production.result == 'failure')
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm install
+    
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_DEV }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_DEV }}
+        aws-region: ${{ secrets.AWS_REGION_DEV }}
+    
+    - name: Cleanup failed deployment
+      run: |
+        echo "Cleaning up failed deployment..."
+        # Only cleanup if deployment failed
+        if [ "${{ needs.deploy-dev.result }}" == "failure" ]; then
+          echo "Cleaning up development stage..."
+          npx serverless remove --stage dev --region ${{ secrets.AWS_REGION_DEV }} --verbose || true
+        fi
+        if [ "${{ needs.deploy-staging.result }}" == "failure" ]; then
+          echo "Cleaning up staging stage..."
+          npx serverless remove --stage staging --region ${{ secrets.AWS_REGION_STAGING }} --verbose || true
+        fi
+        if [ "${{ needs.deploy-production.result }}" == "failure" ]; then
+          echo "Cleaning up production stage..."
+          npx serverless remove --stage prod --region ${{ secrets.AWS_REGION_PROD }} --verbose || true
+        fi

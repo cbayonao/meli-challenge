@@ -1,6 +1,6 @@
-# 🚀 CI/CD Pipeline & Deployment Guide
+# 🚀 CI/CD Pipeline & Deployment Guide - Serverless
 
-This document explains the complete CI/CD pipeline setup for your Meli Challenge Scrapy project, including automated testing, building, and deployment to AWS ECS.
+This document explains the complete CI/CD pipeline setup for your Meli Challenge Scrapy project, including automated testing, building, and deployment to AWS using Serverless Framework.
 
 ## 📋 Table of Contents
 
@@ -18,30 +18,30 @@ This document explains the complete CI/CD pipeline setup for your Meli Challenge
 The CI/CD pipeline provides:
 
 - **Automated Testing**: Linting, unit tests, and security scanning
-- **Docker Image Building**: Multi-platform image builds with caching
-- **Infrastructure as Code**: Terraform-managed AWS resources
-- **Multi-Environment Deployment**: Staging and production environments
-- **Auto-scaling**: ECS service auto-scaling based on CPU/memory
-- **Health Monitoring**: Automated health checks and rollbacks
+- **Serverless Deployment**: AWS Lambda functions with auto-scaling
+- **Infrastructure as Code**: Serverless Framework managed AWS resources
+- **Multi-Environment Deployment**: Development, staging, and production environments
+- **Auto-scaling**: Lambda concurrency and DynamoDB auto-scaling
+- **Health Monitoring**: Automated health checks and CloudWatch alarms
 - **Security**: Secrets management and vulnerability scanning
 
 ## 🏗️ Architecture
 
 ```
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   GitHub Repo   │───▶│  GitHub Actions  │───▶│   AWS ECS      │
+│   GitHub Repo   │───▶│  GitHub Actions  │───▶│   AWS Lambda    │
 │                 │    │                  │    │                 │
 │ ┌─────────────┐ │    │ ┌──────────────┐ │    │ ┌─────────────┐ │
-│ │   Code      │ │    │ │   Test       │ │    │ │   Cluster   │ │
-│ │   Changes   │ │    │ │   Build      │ │    │ │   Service   │ │
-│ └─────────────┘ │    │ │   Deploy     │ │    │ └─────────────┘ │
+│ │   Code      │ │    │ │   Test       │ │    │ │   Functions │ │
+│ │   Changes   │ │    │ │   Build      │ │    │ │   API       │ │
+│ └─────────────┘ │    │ │   Deploy     │ │    │ │   Gateway   │ │
 └─────────────────┘    └──────────────────┘    └─────────────────┘
                                 │                        │
                                 ▼                        ▼
                        ┌──────────────────┐    ┌─────────────────┐
-                       │   Container      │    │   AWS Services  │
-                       │   Registry       │    │                 │
-                       │   (GHCR)        │    │ ┌─────────────┐ │
+                       │   Serverless     │    │   AWS Services  │
+                       │   Framework      │    │                 │
+                       │   (Local)        │    │ ┌─────────────┐ │
                        └──────────────────┘    │ │ DynamoDB    │ │
                                                │ │ SQS         │ │
                                                │ │ CloudWatch  │ │
@@ -53,21 +53,21 @@ The CI/CD pipeline provides:
 ## 🔧 Prerequisites
 
 ### **Required Tools**
-- Docker & Docker Compose
+- Node.js 18+ and npm
 - AWS CLI (configured with appropriate credentials)
-- Terraform (for infrastructure deployment)
+- Serverless Framework (for infrastructure deployment)
 - Python 3.11+
 
 ### **AWS Setup**
 - AWS Account with appropriate permissions
-- IAM roles for ECS execution and task
-- S3 bucket for Terraform state
+- IAM roles for Lambda execution
+- DynamoDB tables and SQS queues
 - Secrets Manager for sensitive data
 
 ### **GitHub Setup**
 - GitHub repository with Actions enabled
-- GitHub Container Registry access
-- Repository secrets configured
+- Repository secrets configured for AWS credentials
+- Environment protection rules (optional)
 
 ## 🔄 GitHub Actions Workflow
 
@@ -85,327 +85,254 @@ on:
       environment:
         description: 'Environment to deploy to'
         required: true
-        default: 'staging'
+        default: 'dev'
         type: choice
         options:
+        - dev
         - staging
-        - production
+        - prod
 ```
 
 ### **Pipeline Stages**
 
 #### **1. Test & Lint**
 - Python 3.11 setup
-- Dependency installation with `uv`
+- Dependency installation with pip
 - Code linting (flake8, black, isort)
-- Unit tests with pytest
-- Coverage reporting
+- Unit tests with pytest and coverage
 
 #### **2. Security Scan**
-- Trivy vulnerability scanning
-- SARIF report upload to GitHub Security tab
-- Dependency vulnerability checks
+- Trivy vulnerability scanner
+- Code security analysis
+- SARIF report upload to GitHub Security
 
-#### **3. Build**
-- Docker Buildx setup
-- Multi-platform builds (linux/amd64, linux/arm64)
-- GitHub Container Registry push
-- Build caching for performance
+#### **3. Serverless Setup**
+- Node.js 18+ setup
+- Serverless Framework installation
+- Dependency verification
 
-#### **4. Deploy Staging**
-- Automatic deployment on `develop` branch
-- AWS ECS service update
-- Service stability verification
+#### **4. Deployment**
+- **Development**: Deploy to dev stage (develop branch)
+- **Staging**: Deploy to staging stage (main branch)
+- **Production**: Deploy to prod stage (main branch + releases)
 
-#### **5. Deploy Production**
-- Automatic deployment on `main` branch
-- Release-triggered deployments
-- Production environment protection
+#### **5. Post-Deployment**
+- Health checks and validation
+- Success/failure notifications
+- Cleanup on deployment failure
 
-#### **6. Post-Deployment Tests**
-- Health check verification
-- Service status monitoring
-- Deployment success notification
+## 🚀 AWS Infrastructure
 
-## 🏗️ AWS Infrastructure
+### **Serverless Resources**
 
-### **Terraform Modules**
+#### **Lambda Functions**
+- **identification-spider**: Discovers products from MercadoLibre
+- **collection-spider**: Extracts detailed product information
+- **data-validator**: Validates scraped data using AI
+- **monitoring**: Health checks and alerting
 
-#### **VPC Module**
-- Custom VPC with public/private subnets
-- NAT gateways for private subnet internet access
-- Route tables and security groups
+#### **AWS Services**
+- **DynamoDB**: Product data storage with auto-scaling
+- **SQS**: Message queuing for processing
+- **API Gateway**: HTTP endpoints for spiders
+- **CloudWatch**: Monitoring, logging, and alarms
+- **Secrets Manager**: API keys and sensitive data
 
-#### **ECS Module**
-- Fargate cluster with auto-scaling
-- Service definitions with health checks
-- CloudWatch logging and monitoring
+### **Configuration Files**
+- **`serverless.yml`**: Main configuration
+- **`serverless.dev.yml`**: Development stage settings
+- **`serverless.prod.yml`**: Production stage settings
 
-#### **DynamoDB Module**
-- DynamoDB table with auto-scaling
-- Backup and encryption enabled
-- Point-in-time recovery
+## 🔧 Deployment Process
 
-#### **SQS Module**
-- Standard SQS queue
-- Dead letter queue for failed messages
-- CloudWatch alarms for monitoring
-
-#### **IAM Module**
-- ECS execution role
-- ECS task role
-- Least privilege permissions
-
-#### **Secrets Module**
-- AWS credentials storage
-- Application secrets management
-- Automatic rotation support
-
-### **Infrastructure Configuration**
-
-#### **Staging Environment**
-```hcl
-environment = "staging"
-cpu         = 512
-memory      = 1024
-desired_count = 1
-max_count   = 2
-```
-
-#### **Production Environment**
-```hcl
-environment = "production"
-cpu         = 1024
-memory      = 2048
-desired_count = 2
-max_count   = 5
-```
-
-## 🚀 Deployment Process
-
-### **Automated Deployment**
-
-#### **Staging (develop branch)**
-1. Code push to `develop` branch
-2. GitHub Actions workflow triggers
-3. Tests run and pass
-4. Docker image built and pushed
-5. ECS service updated automatically
-6. Health checks verify deployment
-
-#### **Production (main branch)**
-1. Code merged to `main` branch
-2. GitHub Actions workflow triggers
-3. All tests must pass
-4. Docker image built and pushed
-5. ECS service updated automatically
-6. Health checks verify deployment
-7. Success notification sent
-
-### **Manual Deployment**
-
-#### **Using GitHub Actions**
-1. Go to Actions tab in repository
-2. Select "CI/CD Pipeline" workflow
-3. Click "Run workflow"
-4. Choose environment (staging/production)
-5. Click "Run workflow"
-
-#### **Using Deployment Script**
+### **Local Development**
 ```bash
-# Deploy to staging
-./deploy.sh -e staging
+# Setup Serverless Framework
+make serverless-setup
+
+# Deploy to development
+make serverless-deploy
 
 # Deploy to production
-./deploy.sh -e production
+make serverless-deploy-prod
 
-# Deploy with custom region
-./deploy.sh -e production -r eu-west-1
-
-# Skip tests (use with caution)
-./deploy.sh -e production -s
-
-# Force deployment even if tests fail
-./deploy.sh -e production -f
+# Remove deployment
+make serverless-remove
 ```
 
-## 📊 Monitoring & Troubleshooting
-
-### **CloudWatch Monitoring**
-
-#### **ECS Metrics**
-- CPU utilization
-- Memory utilization
-- Network metrics
-- Task count
-
-#### **Application Metrics**
-- Custom business metrics
-- Error rates
-- Response times
-- Throughput
-
-#### **Alarms**
-- High CPU/memory usage
-- Service health issues
-- Error rate thresholds
-- Auto-scaling triggers
-
-### **Logging**
-
-#### **ECS Logs**
-- Application logs in CloudWatch
-- Structured logging with JSON
-- Log retention policies
-- Log filtering and search
-
-#### **GitHub Actions Logs**
-- Workflow execution logs
-- Step-by-step debugging
-- Artifact downloads
-- Re-run failed jobs
-
-### **Troubleshooting**
-
-#### **Common Issues**
-
-1. **Deployment Failures**
-   ```bash
-   # Check ECS service status
-   aws ecs describe-services \
-     --cluster meli-crawler-cluster-staging \
-     --services meli-crawler-staging
-   
-   # Check task logs
-   aws logs tail /ecs/meli-crawler-staging
-   ```
-
-2. **Infrastructure Issues**
-   ```bash
-   # Check Terraform state
-   cd infrastructure
-   terraform plan
-   terraform state list
-   
-   # Check AWS resources
-   aws ecs list-clusters
-   aws ecs list-services --cluster meli-crawler-cluster-staging
-   ```
-
-3. **GitHub Actions Issues**
-   - Check workflow logs in Actions tab
-   - Verify repository secrets
-   - Check branch protection rules
-   - Verify GitHub token permissions
-
-#### **Debug Commands**
-
+### **CI/CD Deployment**
 ```bash
-# Check ECS cluster status
-aws ecs describe-clusters --clusters meli-crawler-cluster-staging
-
-# Check service events
-aws ecs describe-services \
-  --cluster meli-crawler-cluster-staging \
-  --services meli-crawler-staging \
-  --query 'services[0].events'
-
-# Check running tasks
-aws ecs list-tasks --cluster meli-crawler-cluster-staging
-
-# Check task definition
-aws ecs describe-task-definition \
-  --task-definition meli-crawler-staging
+# Automated deployment via GitHub Actions
+# Development: develop branch → dev stage
+# Staging: main branch → staging stage
+# Production: main branch + release → prod stage
 ```
-
-## 🔒 Security & Best Practices
-
-### **Security Measures**
-
-#### **Secrets Management**
-- AWS Secrets Manager for sensitive data
-- No hardcoded credentials
-- Automatic secret rotation
-- Least privilege access
-
-#### **Network Security**
-- Private subnets for ECS tasks
-- Security groups with minimal access
-- VPC endpoints for AWS services
-- No public internet access for tasks
-
-#### **Container Security**
-- Base image vulnerability scanning
-- Runtime security monitoring
-- Resource limits and constraints
-- Health check verification
-
-### **Best Practices**
-
-#### **Code Quality**
-- Automated linting and formatting
-- Unit test coverage requirements
-- Code review requirements
-- Branch protection rules
-
-#### **Infrastructure**
-- Infrastructure as Code (Terraform)
-- Environment separation
-- Resource tagging
-- Cost monitoring
-
-#### **Deployment**
-- Blue-green deployments
-- Rollback capabilities
-- Health check verification
-- Gradual rollout
-
-## 📚 Configuration Files
-
-### **Required Files**
-
-1. **`.github/workflows/ci-cd.yml`** - GitHub Actions workflow
-2. **`.aws/task-definition-*.json`** - ECS task definitions
-3. **`infrastructure/`** - Terraform configurations
-4. **`deploy.sh`** - Deployment script
-5. **`Dockerfile`** - Container definition
-6. **`docker-compose.yml`** - Local development
 
 ### **Environment Variables**
-
-#### **GitHub Secrets**
 ```bash
+# Required secrets in GitHub
+AWS_ACCESS_KEY_ID_DEV
+AWS_SECRET_ACCESS_KEY_DEV
+AWS_REGION_DEV
 AWS_ACCESS_KEY_ID_STAGING
 AWS_SECRET_ACCESS_KEY_STAGING
 AWS_REGION_STAGING
 AWS_ACCESS_KEY_ID_PROD
 AWS_SECRET_ACCESS_KEY_PROD
 AWS_REGION_PROD
-```
 
-#### **Application Secrets**
-```bash
-AWS_ACCESS_KEY_ID
-AWS_SECRET_ACCESS_KEY
-DYNAMODB_TABLE_NAME
-SQS_QUEUE_URL
+# API Keys
 ZYTE_API_KEY
+OPENAI_API_KEY
+ANTHROPIC_API_KEY
+GOOGLE_API_KEY
 ```
 
-## 🎯 Next Steps
+## 📊 Monitoring & Troubleshooting
 
-1. **Setup GitHub Secrets**: Configure AWS credentials and other secrets
-2. **Configure AWS**: Set up IAM roles and permissions
-3. **Test Pipeline**: Push to develop branch to test staging deployment
-4. **Production Setup**: Configure production environment and secrets
-5. **Monitoring**: Set up CloudWatch dashboards and alarms
-6. **Documentation**: Update team documentation and runbooks
+### **CloudWatch Monitoring**
+- **Lambda Metrics**: Invocations, errors, duration, throttles
+- **DynamoDB Metrics**: Read/write capacity, throttled requests
+- **SQS Metrics**: Queue depth, message age, errors
+- **API Gateway Metrics**: Request count, latency, errors
 
-## 🤝 Support
+### **CloudWatch Alarms**
+- **High Error Rate**: Lambda function errors
+- **Queue Depth**: SQS message accumulation
+- **DynamoDB Throttling**: Capacity issues
 
-- **GitHub Issues**: Report bugs and feature requests
-- **GitHub Discussions**: Ask questions and share ideas
-- **Documentation**: Check this guide and related docs
-- **Team**: Contact your DevOps/Infrastructure team
+### **Logs and Debugging**
+```bash
+# View function logs
+make serverless-logs
 
-Your CI/CD pipeline is now ready for automated, secure, and reliable deployments! 🎉
+# Get deployment info
+make serverless-info
+
+# Local testing
+npx serverless invoke local -f function-name
+```
+
+### **Common Issues**
+
+#### **1. Lambda Timeout**
+```bash
+# Check function logs
+make serverless-logs
+
+# Increase timeout in serverless.yml
+timeout: 900  # 15 minutes
+```
+
+#### **2. Memory Issues**
+```bash
+# Increase memory allocation
+memorySize: 2048  # 2GB
+
+# Check memory usage in CloudWatch
+```
+
+#### **3. SQS Queue Depth**
+```bash
+# Check queue attributes
+aws sqs get-queue-attributes \
+  --queue-url $QUEUE_URL \
+  --attribute-names All
+
+# Increase Lambda concurrency
+reservedConcurrency: 20
+```
+
+## 🔐 Security & Best Practices
+
+### **IAM Roles and Permissions**
+- **Least privilege principle**: Only necessary permissions
+- **Resource-based policies**: Specific resource access
+- **Cross-account access**: Secure multi-account setup
+
+### **Secrets Management**
+- **AWS Secrets Manager**: Centralized secret storage
+- **Environment variables**: Secure configuration
+- **API key rotation**: Regular key updates
+
+### **Network Security**
+- **VPC configuration**: Private subnets for Lambda
+- **Security groups**: Restrictive access rules
+- **WAF integration**: Web application firewall
+
+### **Code Security**
+- **Dependency scanning**: Regular vulnerability checks
+- **Code signing**: Verify code integrity
+- **Access control**: Repository permissions
+
+## 📈 Performance Optimization
+
+### **Lambda Optimization**
+- **Memory allocation**: Right-size for performance
+- **Concurrency limits**: Control resource usage
+- **Cold start reduction**: Keep functions warm
+
+### **DynamoDB Optimization**
+- **Auto-scaling**: Automatic capacity management
+- **Indexing strategy**: Efficient query patterns
+- **Batch operations**: Reduce API calls
+
+### **SQS Optimization**
+- **Batch processing**: Process multiple messages
+- **Dead letter queues**: Handle failed messages
+- **Visibility timeout**: Prevent duplicate processing
+
+## 🔄 Rollback and Recovery
+
+### **Deployment Rollback**
+```bash
+# Remove current deployment
+make serverless-remove
+
+# Deploy previous version
+git checkout <previous-commit>
+make serverless-deploy
+```
+
+### **Data Recovery**
+- **DynamoDB backups**: Point-in-time recovery
+- **SQS message retention**: Configurable retention periods
+- **CloudWatch logs**: Historical data access
+
+### **Disaster Recovery**
+- **Multi-region deployment**: Geographic redundancy
+- **Cross-region replication**: Data synchronization
+- **Backup strategies**: Regular backup schedules
+
+## 📚 Additional Resources
+
+- [Serverless Framework Documentation](https://www.serverless.com/framework/docs/)
+- [AWS Lambda Best Practices](https://docs.aws.amazon.com/lambda/latest/dg/best-practices.html)
+- [GitHub Actions Documentation](https://docs.github.com/en/actions)
+- [AWS CloudWatch Documentation](https://docs.aws.amazon.com/cloudwatch/)
+
+## 🤝 Support and Troubleshooting
+
+### **Getting Help**
+1. **Check logs**: `make serverless-logs`
+2. **Review configuration**: Check `serverless.yml` files
+3. **Verify AWS credentials**: `aws sts get-caller-identity`
+4. **Check CloudWatch**: Monitor metrics and alarms
+5. **Review documentation**: This README and Serverless docs
+
+### **Common Commands**
+```bash
+# Development
+make serverless-setup
+make serverless-deploy
+make serverless-info
+
+# Production
+make serverless-deploy-prod
+make serverless-remove
+
+# Troubleshooting
+make serverless-logs
+npx serverless info --stage prod
+npx serverless logs -f function-name --tail
+```

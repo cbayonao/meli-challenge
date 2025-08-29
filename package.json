@@ -1,0 +1,37 @@
+{
+  "name": "meli-challenge-serverless",
+  "version": "1.0.0",
+  "description": "Serverless deployment for Meli Challenge",
+  "main": "index.js",
+  "scripts": {
+    "deploy": "serverless deploy",
+    "deploy:prod": "serverless deploy --stage prod",
+    "deploy:staging": "serverless deploy --stage staging",
+    "remove": "serverless remove",
+    "remove:prod": "serverless remove --stage prod",
+    "remove:staging": "serverless remove --stage staging",
+    "info": "serverless info",
+    "logs": "serverless logs -f",
+    "invoke": "serverless invoke -f",
+    "invoke:local": "serverless invoke local -f",
+    "package": "serverless package",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "serverless",
+    "aws",
+    "lambda",
+    "scrapy",
+    "web-scraping",
+    "meli-challenge"
+  ],
+  "author": "Camilo Bayona",
+  "license": "MIT",
+  "devDependencies": {
+    "serverless": "^3.38.0",
+    "serverless-python-requirements": "^6.0.0",
+    "serverless-dotenv-plugin": "^6.0.0",
+    "serverless-offline": "^13.3.0"
+  },
+  "dependencies": {}
+}

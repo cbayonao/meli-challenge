@@ -1,0 +1,153 @@
+# Production stage configuration
+# Extends the main serverless.yml with production-specific settings
+
+service: meli-challenge
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: python3.11
+  stage: prod
+  region: ${env:AWS_DEFAULT_REGION, 'us-east-1'}
+  memorySize: 2048
+  timeout: 900
+  environment:
+    STAGE: prod
+    LOG_LEVEL: INFO
+    ENABLE_SCHEDULED_SCRAPING: true
+    ENABLE_MONITORING: true
+    MAX_PAGES: 50
+    MAX_ITEMS: 5000
+    MAX_BATCHES: 100
+    MAX_MESSAGES_PER_BATCH: 20
+    MAX_RETRIES: 5
+    VALIDATION_ENABLE_AI: true
+  tags:
+    Environment: production
+    Project: meli-challenge
+    Owner: production-team
+    CostCenter: data-processing
+
+functions:
+  identification-spider:
+    memorySize: 2048
+    timeout: 600
+    reservedConcurrency: 5
+    environment:
+      LOG_LEVEL: INFO
+      MAX_PAGES: 50
+      MAX_ITEMS: 5000
+
+  collection-spider:
+    memorySize: 2048
+    timeout: 600
+    reservedConcurrency: 10
+    environment:
+      LOG_LEVEL: INFO
+      MAX_BATCHES: 100
+      MAX_MESSAGES_PER_BATCH: 20
+      MAX_RETRIES: 5
+
+  data-validator:
+    memorySize: 1024
+    timeout: 300
+    reservedConcurrency: 20
+    environment:
+      VALIDATION_ENABLE_AI: true
+      VALIDATION_AI_PROVIDER: openai
+
+  monitoring:
+    memorySize: 512
+    timeout: 120
+    events:
+      - schedule:
+          rate: rate(5 minutes)
+          enabled: true
+
+resources:
+  Resources:
+    ProductsTable:
+      Properties:
+        BillingMode: PROVISIONED
+        ProvisionedThroughput:
+          ReadCapacityUnits: 100
+          WriteCapacityUnits: 100
+        AutoScalingTargetTrackingScalingPolicyConfiguration:
+          TargetValue: 70.0
+          ScaleInCooldown: 60
+          ScaleOutCooldown: 60
+        Tags:
+          - Key: Environment
+            Value: production
+          - Key: Project
+            Value: meli-challenge
+          - Key: Owner
+            Value: production-team
+          - Key: CostCenter
+            Value: data-processing
+
+    ProductQueue:
+      Properties:
+        VisibilityTimeoutSeconds: 600
+        MessageRetentionPeriod: 1209600  # 14 days
+        RedrivePolicy:
+          deadLetterTargetArn:
+            Fn::GetAtt:
+              - ProductDeadLetterQueue
+              - Arn
+          maxReceiveCount: 5
+
+    ValidationQueue:
+      Properties:
+        VisibilityTimeoutSeconds: 600
+        MessageRetentionPeriod: 1209600  # 14 days
+
+    # CloudWatch Alarms for production monitoring
+    HighErrorRateAlarm:
+      Type: AWS::CloudWatch::Alarm
+      Properties:
+        AlarmName: ${self:service}-${self:provider.stage}-high-error-rate
+        AlarmDescription: High error rate in Lambda functions
+        MetricName: Errors
+        Namespace: AWS/Lambda
+        Statistic: Sum
+        Period: 300
+        EvaluationPeriods: 2
+        Threshold: 5
+        ComparisonOperator: GreaterThanThreshold
+        AlarmActions:
+          - Ref: SNSTopicArn
+
+    HighQueueDepthAlarm:
+      Type: AWS::CloudWatch::Alarm
+      Properties:
+        AlarmName: ${self:service}-${self:provider.stage}-high-queue-depth
+        AlarmDescription: High message count in SQS queues
+        MetricName: ApproximateNumberOfVisibleMessages
+        Namespace: AWS/SQS
+        Statistic: Maximum
+        Period: 300
+        EvaluationPeriods: 2
+        Threshold: 1000
+        ComparisonOperator: GreaterThanThreshold
+        Dimensions:
+          - Name: QueueName
+            Value:
+              Fn::GetAtt:
+                - ProductQueue
+                - QueueName
+        AlarmActions:
+          - Ref: SNSTopicArn
+
+custom:
+  pythonRequirements:
+    dockerizePip: false
+    layer:
+      name: python-deps-prod
+      description: Production Python dependencies for Meli Challenge
+    noDeploy:
+      - coverage
+      - pytest
+      - black
+      - flake8
+      - mypy

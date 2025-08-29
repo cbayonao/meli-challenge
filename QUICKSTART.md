@@ -8,8 +8,8 @@ Get your Meli Challenge project up and running in minutes! This guide covers the
 ```bash
 # Check if you have the required software
 python --version          # Should be 3.11+
-docker --version          # Docker should be installed
-docker-compose --version  # Docker Compose should be installed
+pip --version            # pip should be available
+git --version            # git should be available
 aws --version            # AWS CLI should be installed
 ```
 
@@ -45,74 +45,50 @@ MAX_PAGES=5
 MAX_ITEMS=100
 ```
 
-### **3. Run with Docker (Recommended)**
+### **3. Run Spiders**
 ```bash
-# Setup Docker environment
-./setup-docker.sh
+# Run identification spider (discovers products)
+scrapy crawl meli-uy-identify
 
-# Start the application
-make up
+# Run collection spider (extracts details)
+scrapy crawl meli-uy-collect
 
-# Check status
-make status
+# Check spider status
+scrapy list
 ```
 
 ### **4. Verify Installation**
 ```bash
 # Check if spiders are available
-docker-compose exec meli-crawler scrapy list
+scrapy list
 
 # Should show:
 # meli-uy-identify
 # meli-uy-collect
 ```
 
-## 🐳 Docker Quick Commands
 
-### **Essential Commands**
-```bash
-make up              # Start all services
-make down            # Stop all services
-make logs            # View logs
-make status          # Check service status
-make restart         # Restart services
-```
-
-### **Development Commands**
-```bash
-make dev-up          # Start development environment
-make dev-shell       # Access development container
-make dev-logs        # View development logs
-make dev-down        # Stop development environment
-```
-
-### **Production Commands**
-```bash
-make prod-up         # Start production environment
-make prod-logs       # View production logs
-make prod-down       # Stop production environment
-```
 
 ## 🕷️ Running Spiders
 
 ### **Quick Spider Test**
 ```bash
 # Run identification spider (discovers products)
-docker-compose exec meli-crawler scrapy crawl meli-uy-identify
+scrapy crawl meli-uy-identify
 
 # Run collection spider (extracts details)
-docker-compose exec meli-crawler scrapy crawl meli-uy-collect
+scrapy crawl meli-uy-collect
 ```
 
 ### **Spider with Limits**
 ```bash
 # Run with custom limits (for testing)
-docker-compose exec meli-crawler scrapy crawl meli-uy-identify \
+scrapy crawl meli-uy-identify \
   -a max_pages=2 \
   -a max_items=10
 
 # Run collection spider with retry settings
-docker-compose exec meli-crawler scrapy crawl meli-uy-collect \
+scrapy crawl meli-uy-collect \
   -a max_batches=5 \
   -a max_messages_per_batch=3
 ```
@@ -147,7 +123,7 @@ make test-report
 make logs
 
 # View specific service logs
-docker-compose logs -f meli-crawler
+tail -f logs/scrapy.log
 
 # View development logs
 make dev-logs
@@ -158,11 +134,11 @@ make dev-logs
 # Check service status
 make status
 
-# Check Docker containers
-docker-compose ps
+# Check running processes
+ps aux | grep scrapy
 
 # Check resource usage
-docker stats
+top
 ```
 
 ## 🔧 Quick Configuration
@@ -215,19 +191,14 @@ export AWS_ACCESS_KEY_ID=your_key
 export AWS_SECRET_ACCESS_KEY=your_secret
 ```
 
-### **Issue: Docker Permission Errors**
-```bash
-# Solution: Add user to docker group
-sudo usermod -aG docker $USER
-# Then logout and login again
-```
+
 
 ### **Issue: Port Already in Use**
 ```bash
 # Solution: Check what's using the port
 lsof -i :8000
 
-# Kill the process or change port in docker-compose.yml
+# Kill the process or change port
 ```
 
 ## 📈 Performance Tuning
@@ -246,11 +217,11 @@ export SCRAPY_HTTPCACHE_ENABLED=True
 
 ### **Resource Limits**
 ```bash
-# In docker-compose.yml
-services:
-  meli-crawler:
-    deploy:
-      resources:
+# In serverless.yml
+functions:
+  function-name:
+    memorySize: 2048
+    timeout: 900
         limits:
           cpus: '2.0'
           memory: 4G
@@ -267,13 +238,13 @@ services:
 export SCRAPY_LOG_LEVEL=DEBUG
 
 # Run spider with debug output
-docker-compose exec meli-crawler scrapy crawl meli-uy-identify -L DEBUG
+scrapy crawl meli-uy-identify -L DEBUG
 ```
 
 ### **Debug Specific Component**
 ```bash
 # Test specific pipeline
-docker-compose exec meli-crawler python -c "
+python -c "
 from meli_crawler.pipelines import ValidationPipeline
 pipeline = ValidationPipeline()
 result = pipeline.process_item({'title': 'test', 'pub_url': 'https://example.com'}, None)
@@ -301,7 +272,7 @@ print(result)
 ### **Essential Files**
 ```
 .env                    # Environment configuration
-docker-compose.yml      # Docker services
+serverless.yml          # Serverless configuration
 Makefile               # Build commands
 tests/                 # Test suite
 meli_crawler/          # Main application
@@ -333,5 +304,3 @@ For detailed information, check out:
 - **`README.md`** - Complete project documentation
 - **`ARCHITECTURE.md`** - System architecture details
 - **`tests/README.md`** - Testing guide
-
-Happy Scraping! 🕷️✨

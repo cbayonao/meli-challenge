@@ -180,8 +180,8 @@ graph TB
         end
         
         subgraph "Private Subnets"
-            ECS[ECS Fargate Cluster]
-            ECS_TASK[ECS Tasks]
+            LAMBDA[Lambda Functions]
+LAMBDA_TASK[Lambda Tasks]
         end
     end
     
@@ -198,21 +198,21 @@ graph TB
         ML[mercadolibre.com.uy]
     end
     
-    ALB --> ECS_TASK
-    ECS_TASK --> DDB
-    ECS_TASK --> SQS
-    ECS_TASK --> SEC
-    ECS_TASK --> ZYTE
-    ECS_TASK --> ML
+    API --> LAMBDA_TASK
+    LAMBDA_TASK --> DDB
+    LAMBDA_TASK --> SQS
+    LAMBDA_TASK --> SEC
+    LAMBDA_TASK --> ZYTE
+    LAMBDA_TASK --> ML
     
     NAT --> ZYTE
     NAT --> ML
     
-    CW --> ECS
-    IAM --> ECS
+    CW --> LAMBDA
+    IAM --> LAMBDA
 ```
 
-### **ECS Task Definition**
+### **Lambda Function Definition**
 
 #### **Container Configuration**
 ```yaml
@@ -318,13 +318,13 @@ Scale-out Cooldown: 60 seconds
 
 #### **Security Groups**
 ```
-ECS Security Group:
+Lambda Security Group:
 - Inbound: None (private subnet)
 - Outbound: All traffic (0.0.0.0/0)
 
 ALB Security Group:
 - Inbound: HTTPS (443) from 0.0.0.0/0
-- Outbound: All traffic to ECS security group
+- Outbound: All traffic to Lambda security group
 ```
 
 #### **VPC Configuration**
@@ -339,7 +339,7 @@ NAT Gateway: For private subnet internet access
 
 ### **CloudWatch Metrics**
 
-#### **ECS Service Metrics**
+#### **Lambda Function Metrics**
 - **CPU Utilization**: Target 70% for scaling
 - **Memory Utilization**: Target 80% for scaling
 - **Network I/O**: Bytes sent/received
@@ -409,7 +409,7 @@ self.logger.debug(f"Pipeline result: {result}")
 ### **Scaling Strategies**
 
 #### **Horizontal Scaling**
-- **ECS Service Auto-scaling**: Based on CPU/Memory metrics
+- **Lambda Concurrency Auto-scaling**: Based on invocation metrics
 - **Task Distribution**: Multiple tasks across availability zones
 - **Load Balancing**: ALB for traffic distribution
 
@@ -472,8 +472,8 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     steps:
-      - name: Build Docker Image
-        run: docker build -t meli-challenge .
+      - name: Setup Serverless Framework
+run: npm install
 
   deploy:
     needs: build
@@ -494,19 +494,19 @@ jobs:
 #### **Environment Separation**
 ```
 Development:
-- ECS Cluster: meli-crawler-dev
+- Lambda Functions: meli-challenge-dev
 - DynamoDB Table: meli-products-dev
 - SQS Queue: meli-queue-dev
 - Log Level: DEBUG
 
 Staging:
-- ECS Cluster: meli-crawler-staging
+- Lambda Functions: meli-challenge-staging
 - DynamoDB Table: meli-products-staging
 - SQS Queue: meli-queue-staging
 - Log Level: INFO
 
 Production:
-- ECS Cluster: meli-crawler-production
+- Lambda Functions: meli-challenge-production
 - DynamoDB Table: meli-products-production
 - SQS Queue: meli-queue-production
 - Log Level: WARNING
@@ -572,9 +572,9 @@ ITEM_PIPELINES = {
 }
 ```
 
-#### **Docker Configuration**
-```dockerfile
-# Dockerfile
+#### **Serverless Configuration**
+```yaml
+# serverless.yml
 FROM python:3.11-slim
 WORKDIR /app
 COPY pyproject.toml uv.lock ./

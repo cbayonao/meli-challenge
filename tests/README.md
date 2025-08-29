@@ -57,8 +57,8 @@ make test-integration   # Integration tests only
 # Run tests with coverage
 make test-coverage
 
-# Run tests in Docker
-make test-docker
+# Run tests locally
+python -m pytest tests/ -v
 
 # List all available tests
 make test-list

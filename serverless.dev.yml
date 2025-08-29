@@ -1,0 +1,96 @@
+# Development stage configuration
+# Extends the main serverless.yml with development-specific settings
+
+service: meli-challenge
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: python3.11
+  stage: dev
+  region: ${env:AWS_DEFAULT_REGION, 'us-east-1'}
+  memorySize: 512
+  timeout: 180
+  environment:
+    STAGE: dev
+    LOG_LEVEL: DEBUG
+    ENABLE_SCHEDULED_SCRAPING: false
+    ENABLE_MONITORING: false
+    MAX_PAGES: 5
+    MAX_ITEMS: 100
+    MAX_BATCHES: 10
+    MAX_MESSAGES_PER_BATCH: 5
+    MAX_RETRIES: 2
+    VALIDATION_ENABLE_AI: false
+  tags:
+    Environment: development
+    Project: meli-challenge
+    Owner: development-team
+
+functions:
+  identification-spider:
+    memorySize: 512
+    timeout: 120
+    environment:
+      LOG_LEVEL: DEBUG
+      MAX_PAGES: 5
+      MAX_ITEMS: 100
+
+  collection-spider:
+    memorySize: 512
+    timeout: 120
+    environment:
+      LOG_LEVEL: DEBUG
+      MAX_BATCHES: 10
+      MAX_MESSAGES_PER_BATCH: 5
+      MAX_RETRIES: 2
+
+  data-validator:
+    memorySize: 512
+    timeout: 120
+    environment:
+      VALIDATION_ENABLE_AI: false
+
+  monitoring:
+    memorySize: 256
+    timeout: 60
+    events:
+      - schedule:
+          rate: rate(30 minutes)
+          enabled: false
+
+resources:
+  Resources:
+    ProductsTable:
+      Properties:
+        BillingMode: PAY_PER_REQUEST
+        Tags:
+          - Key: Environment
+            Value: development
+          - Key: Project
+            Value: meli-challenge
+          - Key: Owner
+            Value: development-team
+
+    ProductQueue:
+      Properties:
+        VisibilityTimeoutSeconds: 120
+        MessageRetentionPeriod: 604800  # 7 days for development
+
+    ValidationQueue:
+      Properties:
+        VisibilityTimeoutSeconds: 120
+        MessageRetentionPeriod: 604800  # 7 days for development
+
+custom:
+  pythonRequirements:
+    dockerizePip: false
+    noDeploy:
+      - coverage
+      - pytest
+      - black
+      - flake8
+      - mypy
+      - openai
+      - anthropic
+      - google-generativeai
