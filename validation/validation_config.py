@@ -84,7 +84,7 @@ class AIProviderConfig:
     
     # OpenAI configuration
     openai: Dict[str, Any] = field(default_factory=lambda: {
-        'default_model': 'gpt-4',
+        'default_model': 'gpt-3.5-turbo',
         'fallback_model': 'gpt-3.5-turbo',
         'max_tokens': 2000,
         'temperature': 0.1,
@@ -92,25 +92,7 @@ class AIProviderConfig:
         'max_retries': 3
     })
     
-    # Anthropic configuration
-    anthropic: Dict[str, Any] = field(default_factory=lambda: {
-        'default_model': 'claude-3-sonnet-20240229',
-        'fallback_model': 'claude-3-haiku-20240307',
-        'max_tokens': 2000,
-        'temperature': 0.1,
-        'timeout': 30,
-        'max_retries': 3
-    })
-    
-    # Google configuration
-    google: Dict[str, Any] = field(default_factory=lambda: {
-        'default_model': 'gemini-pro',
-        'fallback_model': 'gemini-pro',
-        'max_tokens': 2000,
-        'temperature': 0.1,
-        'timeout': 30,
-        'max_retries': 3
-    })
+
 
 
 @dataclass
@@ -146,8 +128,8 @@ class ValidationConfig:
     # Validation rules
     rules: ValidationRules = field(default_factory=ValidationRules)
     
-    # AI providers
-    ai_providers: AIProviderConfig = field(default_factory=AIProviderConfig)
+    # AI provider (OpenAI only)
+    ai_provider: AIProviderConfig = field(default_factory=AIProviderConfig)
     
     # Pipeline settings
     pipeline: ValidationPipelineConfig = field(default_factory=ValidationPipelineConfig)
@@ -267,10 +249,8 @@ class ValidationConfig:
                 'seller_validation': self.rules.seller_validation,
                 'content_validation': self.rules.content_validation
             },
-            'ai_providers': {
-                'openai': self.ai_providers.openai,
-                'anthropic': self.ai_providers.anthropic,
-                'google': self.ai_providers.google
+            'ai_provider': {
+                'openai': self.ai_provider.openai
             },
             'pipeline': {
                 'enable_ai_validation': self.pipeline.enable_ai_validation,

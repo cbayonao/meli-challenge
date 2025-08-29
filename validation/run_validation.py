@@ -77,21 +77,20 @@ def load_sample_data() -> List[Dict[str, Any]]:
     return sample_items
 
 
-async def validate_sample_data(provider: str = "openai", api_key: str = None):
-    """Validate sample data using AI validation"""
+async def validate_sample_data(api_key: str = None):
+    """Validate sample data using OpenAI validation"""
     
     # Initialize validator
     validator = AIValidator(
-        provider=provider,
         api_key=api_key,
-        model="gpt-4" if provider == "openai" else "claude-3-sonnet-20240229",
+        model="gpt-3.5-turbo",
         batch_size=2
     )
     
     # Load sample data
     sample_items = load_sample_data()
     
-    print(f"🔍 Starting validation of {len(sample_items)} sample items using {provider}")
+    print(f"🔍 Starting validation of {len(sample_items)} sample items using OpenAI")
     print("=" * 80)
     
     # Validate items in batch
@@ -118,24 +117,24 @@ def display_validation_results(reports: List[ValidationReport]):
     total_warnings = sum(1 for r in reports if r.overall_status == ValidationStatus.WARNING)
     
     print(f"Total Items: {total_items}")
-    print(f"✅ Passed: {total_passed}")
-    print(f"❌ Failed: {total_failed}")
-    print(f"⚠️  Warnings: {total_warnings}")
+    print(f"Passed: {total_passed}")
+    print(f"Failed: {total_failed}")
+    print(f"Warnings: {total_warnings}")
     print(f"Success Rate: {(total_passed / total_items * 100):.1f}%")
     
     print("\n" + "=" * 80)
     
     # Display detailed results for each item
     for i, report in enumerate(reports, 1):
-        print(f"\n📋 Item {i}: {report.item_id}")
+        print(f"\n Item {i}: {report.item_id}")
         print(f"Status: {get_status_emoji(report.overall_status)} {report.overall_status.value.upper()}")
         print(f"Summary: {report.summary}")
         
         if report.ai_analysis and 'unavailable' not in report.ai_analysis.lower():
-            print(f"🤖 AI Analysis: {report.ai_analysis[:150]}...")
+            print(f"AI Analysis: {report.ai_analysis[:150]}...")
         
         if report.recommendations:
-            print("💡 Recommendations:")
+            print("Recommendations:")
             for rec in report.recommendations[:3]:
                 print(f"   • {rec}")
         
@@ -146,7 +145,7 @@ def display_validation_results(reports: List[ValidationReport]):
             for result in failed_results:
                 print(f"   • {result.field_name}: {result.message}")
                 if result.suggestion:
-                    print(f"     💡 Suggestion: {result.suggestion}")
+                    print(f"     Suggestion: {result.suggestion}")
         
         print("-" * 60)
 
@@ -179,7 +178,7 @@ def save_validation_reports(reports: List[ValidationReport]):
         with open(filepath, 'w', encoding='utf-8') as f:
             json.dump(report_to_dict(report), f, indent=2, ensure_ascii=False)
         
-        print(f"💾 Report saved: {filepath}")
+        print(f"Report saved: {filepath}")
     
     # Save summary
     summary_file = output_dir / f"validation_summary_{timestamp}.json"
@@ -188,7 +187,7 @@ def save_validation_reports(reports: List[ValidationReport]):
     with open(summary_file, 'w', encoding='utf-8') as f:
         json.dump(summary, f, indent=2, ensure_ascii=False)
     
-    print(f"💾 Summary saved: {summary_file}")
+    print(f"Summary saved: {summary_file}")
 
 
 def report_to_dict(report: ValidationReport) -> Dict[str, Any]:
@@ -297,38 +296,26 @@ def generate_recommendations(reports: List[ValidationReport]) -> List[str]:
 async def main():
     """Main function"""
     
-    print("🧠 AI Validation System for Meli Challenge")
+    print("AI Validation System for Meli Challenge")
     print("=" * 80)
     
-    # Check for API key
-    api_key = os.getenv('OPENAI_API_KEY') or os.getenv('ANTHROPIC_API_KEY') or os.getenv('GOOGLE_API_KEY')
+    # Check for OpenAI API key
+    api_key = os.getenv('OPENAI_API_KEY')
     
     if not api_key:
-        print("❌ No API key found!")
-        print("Please set one of the following environment variables:")
+        print("No OpenAI API key found!")
+        print("Please set the OPENAI_API_KEY environment variable:")
         print("  - OPENAI_API_KEY (for OpenAI)")
-        print("  - ANTHROPIC_API_KEY (for Anthropic)")
-        print("  - GOOGLE_API_KEY (for Google)")
         print("\nExample:")
         print("  export OPENAI_API_KEY='your_api_key_here'")
         return
     
-    # Determine provider from API key
-    if os.getenv('OPENAI_API_KEY'):
-        provider = "openai"
-    elif os.getenv('ANTHROPIC_API_KEY'):
-        provider = "anthropic"
-    elif os.getenv('GOOGLE_API_KEY'):
-        provider = "google"
-    else:
-        provider = "openai"  # Default
-    
-    print(f"🔑 Using {provider.upper()} API")
+    print(f"🔑 Using OpenAI API")
     print(f"📁 Sample data will be validated and reports saved to 'validation_reports/' directory")
     
     try:
         # Run validation
-        reports = await validate_sample_data(provider, api_key)
+        reports = await validate_sample_data(api_key)
         
         print("\n🎉 Validation completed successfully!")
         print(f"📊 Check the 'validation_reports/' directory for detailed results")

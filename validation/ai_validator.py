@@ -13,24 +13,12 @@ import re
 from dataclasses import dataclass, asdict
 from enum import Enum
 
-# AI Provider imports
+# OpenAI import
 try:
     import openai
     OPENAI_AVAILABLE = True
 except ImportError:
     OPENAI_AVAILABLE = False
-
-try:
-    import anthropic
-    ANTHROPIC_AVAILABLE = True
-except ImportError:
-    ANTHROPIC_AVAILABLE = False
-
-try:
-    from google.generativeai import GenerativeModel
-    GOOGLE_AVAILABLE = True
-except ImportError:
-    GOOGLE_AVAILABLE = False
 
 
 class ValidationLevel(Enum):
@@ -86,22 +74,20 @@ class AIValidator:
     """
     
     def __init__(self, 
-                 provider: str = "openai",
                  api_key: Optional[str] = None,
-                 model: str = "gpt-4",
+                 model: str = "gpt-3.5-turbo",
                  batch_size: int = 10,
                  max_retries: int = 3):
         """
-        Initialize AI validator
+        Initialize OpenAI validator
         
         Args:
-            provider: AI provider ('openai', 'anthropic', 'google')
-            api_key: API key for the provider
-            model: Model name to use
+            api_key: OpenAI API key
+            model: OpenAI model to use for validation (default: gpt-3.5-turbo)
             batch_size: Number of items to validate in batch
             max_retries: Maximum retry attempts for API calls
         """
-        self.provider = provider.lower()
+        self.provider = "openai"
         self.api_key = api_key
         self.model = model
         self.batch_size = batch_size
@@ -115,25 +101,12 @@ class AIValidator:
         self.validation_rules = self._load_validation_rules()
         
     def _init_ai_client(self):
-        """Initialize AI provider client"""
-        if self.provider == "openai" and OPENAI_AVAILABLE:
-            if self.api_key:
-                openai.api_key = self.api_key
-            self.client = openai
-        elif self.provider == "anthropic" and ANTHROPIC_AVAILABLE:
-            if self.api_key:
-                self.client = anthropic.Anthropic(api_key=self.api_key)
-            else:
-                self.client = anthropic.Anthropic()
-        elif self.provider == "google" and GOOGLE_AVAILABLE:
-            if self.api_key:
-                import google.generativeai as genai
-                genai.configure(api_key=self.api_key)
-                self.client = GenerativeModel(self.model)
-            else:
-                self.client = GenerativeModel(self.model)
-        else:
-            raise ValueError(f"Unsupported AI provider: {self.provider}")
+        """Initialize OpenAI client"""
+        if not OPENAI_AVAILABLE:
+            raise ImportError("OpenAI library not available. Install with: pip install openai")
+        if not self.api_key:
+            raise ValueError("OpenAI API key is required")
+        self.client = openai.OpenAI(api_key=self.api_key)
     
     def _load_validation_rules(self) -> Dict[str, Any]:
         """Load validation rules and thresholds"""
@@ -440,30 +413,16 @@ class AIValidator:
         return prompt
     
     async def _call_ai_api(self, prompt: str) -> str:
-        """Call AI provider API"""
+        """Call OpenAI API with retry logic"""
         for attempt in range(self.max_retries):
             try:
-                if self.provider == "openai":
-                    response = await openai.ChatCompletion.acreate(
-                        model=self.model,
-                        messages=[{"role": "user", "content": prompt}],
-                        max_tokens=2000,
-                        temperature=0.1
-                    )
-                    return response.choices[0].message.content
-                
-                elif self.provider == "anthropic":
-                    response = await self.client.messages.create(
-                        model=self.model,
-                        max_tokens=2000,
-                        temperature=0.1,
-                        messages=[{"role": "user", "content": prompt}]
-                    )
-                    return response.content[0].text
-                
-                elif self.provider == "google":
-                    response = await self.client.generate_content_async(prompt)
-                    return response.text
+                response = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=[{"role": "user", "content": prompt}],
+                    max_tokens=2000,
+                    temperature=0.1
+                )
+                return response.choices[0].message.content
                 
             except Exception as e:
                 if attempt == self.max_retries - 1:

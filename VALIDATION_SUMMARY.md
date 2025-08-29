@@ -16,7 +16,7 @@ Successfully implemented an **autonomous system that validates the quality and c
 
 ### **2.2 Implementation with GenAI ✅**
 
-- **✅ Multiple AI Providers**: OpenAI GPT-4, Anthropic Claude, Google Gemini
+- **✅ OpenAI Integration**: GPT-4 and GPT-3.5-turbo for intelligent validation
 - **✅ Batch Processing**: Efficient validation of multiple items simultaneously
 - **✅ Intelligent Analysis**: AI-powered detection of data quality issues
 - **✅ Correction Suggestions**: Actionable recommendations for data improvement
@@ -52,8 +52,6 @@ Successfully implemented an **autonomous system that validates the quality and c
                        │  AI Providers    │
                        │                  │
                        │ • OpenAI GPT-4   │
-                       │ • Anthropic      │
-                       │ • Google Gemini  │
                        └──────────────────┘
 ```
 
@@ -83,7 +81,7 @@ validation/
 
 ### **AI Validator Engine (`ai_validator.py`)**
 
-- **Multi-Provider Support**: OpenAI, Anthropic, Google Gemini
+- **OpenAI Integration**: GPT-4 and GPT-3.5-turbo for intelligent validation
 - **Async Processing**: Efficient batch validation with rate limiting
 - **Rule-Based Validation**: Field requirements, price ranges, URL patterns
 - **AI-Powered Analysis**: Intelligent issue detection and recommendations
@@ -141,8 +139,7 @@ validation/
 | Provider | Model | Features | Cost |
 |----------|-------|----------|------|
 | **OpenAI** | GPT-4, GPT-3.5-turbo | High accuracy, fast | Medium |
-| **Anthropic** | Claude-3 Sonnet, Haiku | Excellent reasoning | Medium |
-| **Google** | Gemini Pro | Good performance | Low |
+
 
 ### **AI Validation Process**
 
@@ -188,10 +185,10 @@ python validation_cli.py test --provider openai
 python validation_cli.py validate-file data.json --provider openai --save-report
 
 # Validate multiple files in batch
-python validation_cli.py validate-batch data/ --provider anthropic --batch-size 20
+python validation_cli.py validate-batch data/ --batch-size 20
 
 # Validate individual item
-python validation_cli.py validate-item '{"title": "test"}' --provider google
+python validation_cli.py validate-item '{"title": "test"}'
 
 # Generate summary report
 python validation_cli.py generate-report validation_reports/ --output summary.html
@@ -532,7 +529,7 @@ The AI Validation System provides:
 
 ✅ **Complete AI Validation System Implemented**
 - Autonomous data quality validation using Generative AI
-- Multiple AI provider support (OpenAI, Anthropic, Google)
+- OpenAI integration for intelligent validation
 - Comprehensive validation rules and business logic
 - Seamless Scrapy integration with configurable pipelines
 - Command-line interface for standalone validation

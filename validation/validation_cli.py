@@ -41,33 +41,28 @@ class ValidationCLI:
             description='AI-powered data validation for Meli Challenge',
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
-Examples:
-  # Validate a single JSON file
-  python validation_cli.py validate-file data.json --provider openai --model gpt-4
-  
-  # Validate multiple files in batch
-  python validation_cli.py validate-batch data/ --provider anthropic --batch-size 20
-  
-  # Validate individual item
-  python validation_cli.py validate-item '{"title": "test"}' --provider google
-  
-  # Generate validation report
-  python validation_cli.py generate-report validation_reports/ --output summary.html
+            Examples:
+            # Validate a single JSON file
+            python validation_cli.py validate-file data.json --model gpt-3.5-turbo
+            
+            # Validate multiple files in batch
+            python validation_cli.py validate-batch data/ --batch-size 20
+            
+            # Validate individual item
+            python validation_cli.py validate-item '{"title": "test"}'
+            
+            # Generate validation report
+            python validation_cli.py generate-report validation_reports/ --output summary.html
             """
         )
         
         # Global options
         parser.add_argument(
-            '--provider', '-p',
-            choices=['openai', 'anthropic', 'google'],
-            default='openai',
-            help='AI provider to use (default: openai)'
-        )
-        parser.add_argument(
             '--model', '-m',
-            default='gpt-4',
-            help='AI model to use (default: gpt-4)'
+            default='gpt-3.5-turbo',
+            help='OpenAI model to use (default: gpt-3.5-turbo)'
         )
+
         parser.add_argument(
             '--api-key',
             help='API key for AI provider (or set environment variable)'
@@ -309,8 +304,8 @@ Examples:
             self._display_summary(summary)
     
     def test_provider(self, args):
-        """Test AI provider connection"""
-        self.logger.info(f"Testing {args.provider} provider connection")
+        """Test OpenAI provider connection"""
+        self.logger.info("Testing OpenAI provider connection")
         
         # Initialize validator
         validator = self._create_validator(args)
@@ -345,25 +340,23 @@ Examples:
             sys.exit(1)
     
     def _create_validator(self, args) -> AIValidator:
-        """Create AI validator instance"""
-        api_key = args.api_key or self._get_api_key_from_env(args.provider)
+        """Create OpenAI validator instance"""
+        api_key = args.api_key or self._get_api_key_from_env()
         
         if not api_key:
-            self.logger.error(f"No API key found for {args.provider}")
-            self.logger.error(f"Set {args.provider.upper()}_API_KEY environment variable or use --api-key")
+            self.logger.error("No OpenAI API key found")
+            self.logger.error("Set OPENAI_API_KEY environment variable or use --api-key")
             sys.exit(1)
         
         return AIValidator(
-            provider=args.provider,
             api_key=api_key,
             model=args.model,
             batch_size=args.batch_size
         )
     
-    def _get_api_key_from_env(self, provider: str) -> Optional[str]:
-        """Get API key from environment variable"""
-        env_var = f'{provider.upper()}_API_KEY'
-        return os.getenv(env_var)
+    def _get_api_key_from_env(self) -> Optional[str]:
+        """Get OpenAI API key from environment variable"""
+        return os.getenv('OPENAI_API_KEY')
     
     def _display_validation_results(self, reports: List[ValidationReport]):
         """Display validation results in console"""
@@ -643,7 +636,7 @@ Examples:
     </table>
 </body>
 </html>
-        """
+"""
         
         return html
     

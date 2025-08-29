@@ -24,9 +24,17 @@ class MeliUyCollectSpider(scrapy.Spider):
         "DEFAULT_REQUEST_HEADERS": {},
         # Custom pipelines for this spider only
         "ITEM_PIPELINES": {
+            "validation.validation_pipeline.ValidationPipeline": 100,  # ✅ Validación con IA
             "meli_crawler.pipelines.CollectSpiderUpdatePipeline": 300,
             's3pipeline.S3Pipeline': 400,
         },
+        # Configuración de validación con OpenAI
+        'VALIDATION_ENABLE_AI': True,        # ✅ Habilitar validación con IA
+        'VALIDATION_AI_MODEL': 'gpt-4',      # Modelo a usar
+        'VALIDATION_BATCH_SIZE': 5,          # Batch pequeño para no ralentizar
+        'VALIDATION_SAVE_REPORTS': True,     # Guardar reportes
+        'VALIDATION_DROP_INVALID': False,    # No eliminar items inválidos
+        'VALIDATION_LOG_LEVEL': 'INFO',
         'S3PIPELINE_URL': f's3://meli-uy-offers/collect/year={datetime.now().year}/month={datetime.now().month}/day={datetime.now().day}/details.csv'
     }
 

@@ -32,13 +32,11 @@ The AI Validation System provides autonomous validation of scraped product data 
                        └──────────────────┘
                               │
                               ▼
-                       ┌──────────────────┐
-                       │  AI Providers    │
-                       │                  │
-                       │ • OpenAI GPT-4   │
-                       │ • Anthropic      │
-                       │ • Google Gemini  │
-                       └──────────────────┘
+                       ┌──────────────────────────┐
+                       │  AI Providers            │
+                       │                          │
+                       │ • OpenAI gpt-3.5-turbo   │
+                       └──────────────────────────┘
 ```
 
 ### **Validation Flow**
@@ -59,8 +57,6 @@ pip install -r validation/requirements.txt
 
 # Set up environment variables
 export OPENAI_API_KEY="your_openai_api_key"
-export ANTHROPIC_API_KEY="your_anthropic_api_key"
-export GOOGLE_API_KEY="your_google_api_key"
 ```
 
 ### **2. Basic Usage**
@@ -70,9 +66,8 @@ from validation.ai_validator import AIValidator
 
 # Initialize validator
 validator = AIValidator(
-    provider="openai",
     api_key="your_api_key",
-    model="gpt-4"
+    model="gpt-3.5-turbo"
 )
 
 # Validate a single item
@@ -89,7 +84,7 @@ report = asyncio.run(validator.validate_item(item))
 
 # Sync validation (convenience function)
 from validation.ai_validator import validate_item_sync
-report = validate_item_sync(item, provider="openai")
+report = validate_item_sync(item)
 ```
 
 ### **3. Integration with Scrapy**
@@ -102,8 +97,7 @@ custom_settings = {
         # ... other pipelines
     },
     'VALIDATION_ENABLE_AI': True,
-    'VALIDATION_AI_PROVIDER': 'openai',
-    'VALIDATION_AI_MODEL': 'gpt-4',
+    'VALIDATION_AI_MODEL': 'gpt-3.5-turbo',
     'VALIDATION_BATCH_SIZE': 10,
     'VALIDATION_SAVE_REPORTS': True
 }
@@ -114,10 +108,8 @@ custom_settings = {
 ### **Environment Variables**
 
 ```bash
-# AI Provider API Keys
+# OpenAI API Key
 OPENAI_API_KEY=your_openai_api_key
-ANTHROPIC_API_KEY=your_anthropic_api_key
-GOOGLE_API_KEY=your_google_api_key
 
 # Validation Settings
 VALIDATION_ENVIRONMENT=development
@@ -141,7 +133,7 @@ VALIDATION_OUTPUT_DIR=validation_reports
   },
   "ai_providers": {
     "openai": {
-      "default_model": "gpt-4",
+      "default_model": "gpt-3.5-turbo",
       "max_tokens": 2000,
       "temperature": 0.1
     }
@@ -187,8 +179,7 @@ VALIDATION_OUTPUT_DIR=validation_reports
 | Provider | Model | Features | Cost |
 |----------|-------|----------|------|
 | **OpenAI** | GPT-4, GPT-3.5-turbo | High accuracy, fast | Medium |
-| **Anthropic** | Claude-3 Sonnet, Haiku | Excellent reasoning | Medium |
-| **Google** | Gemini Pro | Good performance | Low |
+
 
 ### **AI Validation Process**
 
@@ -247,10 +238,10 @@ python validation_cli.py test --provider openai
 python validation_cli.py validate-file data.json --provider openai --save-report
 
 # Validate multiple files in batch
-python validation_cli.py validate-batch data/ --provider anthropic --batch-size 20
+python validation_cli.py validate-batch data/ --batch-size 20
 
 # Validate individual item
-python validation_cli.py validate-item '{"title": "test"}' --provider google
+python validation_cli.py validate-item '{"title": "test"}'
 
 # Generate summary report
 python validation_cli.py generate-report validation_reports/ --output summary.html
@@ -264,9 +255,8 @@ import asyncio
 
 async def validate_products():
     validator = AIValidator(
-        provider="openai",
         api_key="your_key",
-        model="gpt-4"
+        model="gpt-3.5-turbo"
     )
     
     # Validate single item
@@ -298,7 +288,6 @@ class MySpider(scrapy.Spider):
             'meli_crawler.pipelines.DynamoDBPipeline': 200,
         },
         'VALIDATION_ENABLE_AI': True,
-        'VALIDATION_AI_PROVIDER': 'openai',
         'VALIDATION_SAVE_REPORTS': True
     }
     
@@ -599,7 +588,7 @@ class AIValidator:
     def __init__(self, 
                  provider: str = "openai",
                  api_key: Optional[str] = None,
-                 model: str = "gpt-4",
+                 model: str = "gpt-3.5-turbo",
                  batch_size: int = 10,
                  max_retries: int = 3)
     
@@ -615,7 +604,7 @@ class ValidationPipeline:
     def __init__(self, 
                  enable_ai_validation: bool = True,
                  ai_provider: str = "openai",
-                 ai_model: str = "gpt-4",
+                 ai_model: str = "gpt-3.5-turbo",
                  batch_size: int = 10,
                  save_reports: bool = True)
     

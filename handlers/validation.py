@@ -36,22 +36,21 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         
         # Get validation parameters from event or environment
         enable_ai = event.get('enable_ai', os.getenv('VALIDATION_ENABLE_AI', 'true').lower() == 'true')
-        ai_provider = event.get('ai_provider', os.getenv('VALIDATION_AI_PROVIDER', 'openai'))
         batch_size = int(event.get('batch_size', os.getenv('VALIDATION_BATCH_SIZE', 10)))
         
-        logger.info(f"Validation parameters: enable_ai={enable_ai}, ai_provider={ai_provider}, batch_size={batch_size}")
+        logger.info(f"Validation parameters: enable_ai={enable_ai}, batch_size={batch_size}")
         
         # Initialize AI validator if enabled
         validator = None
         if enable_ai:
             try:
                 validator = AIValidator(
-                    provider=ai_provider,
-                    api_key=os.getenv(f'{ai_provider.upper()}_API_KEY'),
-                    model='gpt-4' if ai_provider == 'openai' else 'claude-3-sonnet-20240229',
+                    provider='openai',
+                    api_key=os.getenv('OPENAI_API_KEY'),
+                    model='gpt-4',
                     batch_size=batch_size
                 )
-                logger.info(f"AI validator initialized with {ai_provider} provider")
+                logger.info("AI validator initialized with OpenAI provider")
             except Exception as e:
                 logger.warning(f"Failed to initialize AI validator: {e}")
                 enable_ai = False
@@ -106,7 +105,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 'message': 'Data validation completed successfully',
                 'results_count': len(validation_results),
                 'ai_enabled': enable_ai,
-                'ai_provider': ai_provider if enable_ai else None,
+                'ai_provider': 'openai' if enable_ai else None,
                 'results': validation_results
             })
         }

@@ -25,8 +25,7 @@ class ValidationPipeline:
     
     def __init__(self, 
                  enable_ai_validation: bool = True,
-                 ai_provider: str = "openai",
-                 ai_model: str = "gpt-4",
+                 ai_model: str = "gpt-3.5-turbo",
                  batch_size: int = 10,
                  save_reports: bool = True,
                  reports_dir: str = "validation_reports",
@@ -37,8 +36,7 @@ class ValidationPipeline:
         
         Args:
             enable_ai_validation: Whether to enable AI-based validation
-            ai_provider: AI provider to use
-            ai_model: AI model to use
+            ai_model: OpenAI model to use for validation
             batch_size: Number of items to validate in batch
             save_reports: Whether to save validation reports to files
             reports_dir: Directory to save validation reports
@@ -46,7 +44,6 @@ class ValidationPipeline:
             log_level: Logging level for validation pipeline
         """
         self.enable_ai_validation = enable_ai_validation
-        self.ai_provider = ai_provider
         self.ai_model = ai_model
         self.batch_size = batch_size
         self.save_reports = save_reports
@@ -82,8 +79,7 @@ class ValidationPipeline:
         """Create pipeline from crawler settings"""
         return cls(
             enable_ai_validation=crawler.settings.getbool('VALIDATION_ENABLE_AI', True),
-            ai_provider=crawler.settings.get('VALIDATION_AI_PROVIDER', 'openai'),
-            ai_model=crawler.settings.get('VALIDATION_AI_MODEL', 'gpt-4'),
+            ai_model=crawler.settings.get('VALIDATION_AI_MODEL', 'gpt-3.5-turbo'),
             batch_size=crawler.settings.getint('VALIDATION_BATCH_SIZE', 10),
             save_reports=crawler.settings.getbool('VALIDATION_SAVE_REPORTS', True),
             reports_dir=crawler.settings.get('VALIDATION_REPORTS_DIR', 'validation_reports'),
@@ -92,24 +88,23 @@ class ValidationPipeline:
         )
     
     def _init_validator(self):
-        """Initialize AI validator with configuration"""
+        """Initialize OpenAI validator with configuration"""
         try:
-            # Get API key from environment or settings
-            api_key = os.getenv(f'{self.ai_provider.upper()}_API_KEY')
+            # Get OpenAI API key from environment
+            api_key = os.getenv('OPENAI_API_KEY')
             
             if not api_key:
-                self.logger.warning(f"No API key found for {self.ai_provider}. AI validation will be disabled.")
+                self.logger.warning("No OpenAI API key found. AI validation will be disabled.")
                 self.enable_ai_validation = False
                 return
             
             self.validator = AIValidator(
-                provider=self.ai_provider,
                 api_key=api_key,
                 model=self.ai_model,
                 batch_size=self.batch_size
             )
             
-            self.logger.info(f"AI validator initialized with {self.ai_provider} provider")
+            self.logger.info("AI validator initialized with OpenAI provider")
             
         except Exception as e:
             self.logger.error(f"Failed to initialize AI validator: {e}")
@@ -374,8 +369,7 @@ class BatchValidationPipeline:
     def __init__(self, 
                  batch_size: int = 50,
                  enable_ai_validation: bool = True,
-                 ai_provider: str = "openai",
-                 ai_model: str = "gpt-4",
+                 ai_model: str = "gpt-3.5-turbo",
                  save_reports: bool = True,
                  reports_dir: str = "validation_reports"):
         """
@@ -384,14 +378,12 @@ class BatchValidationPipeline:
         Args:
             batch_size: Number of items to collect before validation
             enable_ai_validation: Whether to enable AI-based validation
-            ai_provider: AI provider to use
-            ai_model: AI model to use
+            ai_model: OpenAI model to use for validation
             save_reports: Whether to save validation reports
             reports_dir: Directory to save validation reports
         """
         self.batch_size = batch_size
         self.enable_ai_validation = enable_ai_validation
-        self.ai_provider = ai_provider
         self.ai_model = ai_model
         self.save_reports = save_reports
         self.reports_dir = Path(reports_dir)
@@ -415,23 +407,21 @@ class BatchValidationPipeline:
         return cls(
             batch_size=crawler.settings.getint('VALIDATION_BATCH_SIZE', 50),
             enable_ai_validation=crawler.settings.getbool('VALIDATION_ENABLE_AI', True),
-            ai_provider=crawler.settings.get('VALIDATION_AI_PROVIDER', 'openai'),
-            ai_model=crawler.settings.get('VALIDATION_AI_MODEL', 'gpt-4'),
+            ai_model=crawler.settings.get('VALIDATION_AI_MODEL', 'gpt-3.5-turbo'),
             save_reports=crawler.settings.getbool('VALIDATION_SAVE_REPORTS', True),
             reports_dir=crawler.settings.get('VALIDATION_REPORTS_DIR', 'validation_reports')
         )
     
     def _init_validator(self):
-        """Initialize AI validator"""
+        """Initialize OpenAI validator"""
         try:
-            api_key = os.getenv(f'{self.ai_provider.upper()}_API_KEY')
+            api_key = os.getenv('OPENAI_API_KEY')
             if not api_key:
-                self.logger.warning(f"No API key found for {self.ai_provider}")
+                self.logger.warning("No OpenAI API key found")
                 self.enable_ai_validation = False
                 return
             
             self.validator = AIValidator(
-                provider=self.ai_provider,
                 api_key=api_key,
                 model=self.ai_model,
                 batch_size=self.batch_size
