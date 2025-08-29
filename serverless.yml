@@ -196,9 +196,7 @@ resources:
         SecretString: !Sub |
           {
             "zyte_api_key": "${env:ZYTE_API_KEY}",
-            "openai_api_key": "${env:OPENAI_API_KEY}",
-            "anthropic_api_key": "${env:ANTHROPIC_API_KEY}",
-            "google_api_key": "${env:GOOGLE_API_KEY}"
+            "openai_api_key": "${env:OPENAI_API_KEY}"
           }
 
   Outputs:
@@ -244,5 +242,3 @@ custom:
       - AWS_DEFAULT_REGION
       - ZYTE_API_KEY
       - OPENAI_API_KEY
-      - ANTHROPIC_API_KEY
-      - GOOGLE_API_KEY

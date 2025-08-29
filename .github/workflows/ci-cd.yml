@@ -158,8 +158,6 @@ jobs:
       env:
         ZYTE_API_KEY: ${{ secrets.ZYTE_API_KEY }}
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
 
   # Deploy to staging
   deploy-staging:
@@ -195,8 +193,6 @@ jobs:
       env:
         ZYTE_API_KEY: ${{ secrets.ZYTE_API_KEY }}
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
 
   # Deploy to production
   deploy-production:
@@ -232,8 +228,6 @@ jobs:
       env:
         ZYTE_API_KEY: ${{ secrets.ZYTE_API_KEY }}
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
 
   # Post-deployment tests
   post-deploy-test:

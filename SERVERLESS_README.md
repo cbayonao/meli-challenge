@@ -222,7 +222,7 @@ make serverless-logs
 ### **Environment Variables**
 - **Sensitive data**: Stored in AWS Secrets Manager
 - **Configuration**: Environment-specific settings
-- **API keys**: Zyte, OpenAI, Anthropic, Google
+- **API keys**: Zyte, OpenAI
 
 ## 💰 **Cost Optimization**
 

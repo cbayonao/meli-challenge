@@ -92,5 +92,3 @@ custom:
       - flake8
       - mypy
       - openai
-      - anthropic
-      - google-generativeai

@@ -184,8 +184,6 @@ AWS_REGION_PROD
 # API Keys
 ZYTE_API_KEY
 OPENAI_API_KEY
-ANTHROPIC_API_KEY
-GOOGLE_API_KEY
 ```
 
 ## 📊 Monitoring & Troubleshooting
