@@ -1,0 +1,60 @@
+{
+  "item_id": "unknown",
+  "timestamp": "2025-08-29T00:10:14.845304",
+  "total_validations": 4,
+  "passed_validations": 1,
+  "failed_validations": 3,
+  "warning_validations": 0,
+  "overall_status": "failed",
+  "summary": "Basic validation: 1/4 passed, 3 failed",
+  "ai_analysis": "AI validation not enabled - using basic rule-based validation",
+  "recommendations": [
+    "Enable AI validation for more comprehensive analysis"
+  ],
+  "results": [
+    {
+      "field_name": "title",
+      "status": "passed",
+      "level": "info",
+      "message": "Required field 'title' is present",
+      "expected_value": null,
+      "actual_value": "Championes adidas Breaknet Sleek De Mujer - Jr0685 Flex | Cuotas sin interés",
+      "suggestion": null,
+      "confidence": 1.0,
+      "timestamp": "2025-08-29T00:10:14.845261"
+    },
+    {
+      "field_name": "pub_url",
+      "status": "failed",
+      "level": "error",
+      "message": "Required field 'pub_url' is missing or empty",
+      "expected_value": null,
+      "actual_value": null,
+      "suggestion": null,
+      "confidence": 1.0,
+      "timestamp": "2025-08-29T00:10:14.845279"
+    },
+    {
+      "field_name": "seller",
+      "status": "failed",
+      "level": "error",
+      "message": "Required field 'seller' is missing or empty",
+      "expected_value": null,
+      "actual_value": null,
+      "suggestion": null,
+      "confidence": 1.0,
+      "timestamp": "2025-08-29T00:10:14.845284"
+    },
+    {
+      "field_name": "price",
+      "status": "failed",
+      "level": "error",
+      "message": "Required field 'price' is missing or empty",
+      "expected_value": null,
+      "actual_value": null,
+      "suggestion": null,
+      "confidence": 1.0,
+      "timestamp": "2025-08-29T00:10:14.845288"
+    }
+  ]
+}

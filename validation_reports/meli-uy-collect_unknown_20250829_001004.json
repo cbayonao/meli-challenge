@@ -1,0 +1,60 @@
+{
+  "item_id": "unknown",
+  "timestamp": "2025-08-29T00:10:04.945138",
+  "total_validations": 4,
+  "passed_validations": 1,
+  "failed_validations": 3,
+  "warning_validations": 0,
+  "overall_status": "failed",
+  "summary": "Basic validation: 1/4 passed, 3 failed",
+  "ai_analysis": "AI validation not enabled - using basic rule-based validation",
+  "recommendations": [
+    "Enable AI validation for more comprehensive analysis"
+  ],
+  "results": [
+    {
+      "field_name": "title",
+      "status": "passed",
+      "level": "info",
+      "message": "Required field 'title' is present",
+      "expected_value": null,
+      "actual_value": "Canilla Electrica Calentador De Agua Instantáneo Para Mesada | Cuotas sin interés",
+      "suggestion": null,
+      "confidence": 1.0,
+      "timestamp": "2025-08-29T00:10:04.945074"
+    },
+    {
+      "field_name": "pub_url",
+      "status": "failed",
+      "level": "error",
+      "message": "Required field 'pub_url' is missing or empty",
+      "expected_value": null,
+      "actual_value": null,
+      "suggestion": null,
+      "confidence": 1.0,
+      "timestamp": "2025-08-29T00:10:04.945113"
+    },
+    {
+      "field_name": "seller",
+      "status": "failed",
+      "level": "error",
+      "message": "Required field 'seller' is missing or empty",
+      "expected_value": null,
+      "actual_value": null,
+      "suggestion": null,
+      "confidence": 1.0,
+      "timestamp": "2025-08-29T00:10:04.945116"
+    },
+    {
+      "field_name": "price",
+      "status": "failed",
+      "level": "error",
+      "message": "Required field 'price' is missing or empty",
+      "expected_value": null,
+      "actual_value": null,
+      "suggestion": null,
+      "confidence": 1.0,
+      "timestamp": "2025-08-29T00:10:04.945118"
+    }
+  ]
+}

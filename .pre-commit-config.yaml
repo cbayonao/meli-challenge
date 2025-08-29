@@ -1,0 +1,132 @@
+# Pre-commit configuration for Meli Challenge
+# This file configures pre-commit hooks for code quality
+
+repos:
+  # Python code formatting
+  - repo: https://github.com/psf/black
+    rev: 25.1.0
+    hooks:
+      - id: black
+        language_version: python3.11
+        args: [--line-length=88, --target-version=py311]
+
+  # Import sorting
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        args: [--profile=black, --line-length=88]
+
+  # Linting
+  - repo: https://github.com/pycqa/flake8
+    rev: 7.3.0
+    hooks:
+      - id: flake8
+        args: [--max-line-length=88, --extend-ignore=E203,W503]
+
+  # Type checking
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.17.1
+    hooks:
+      - id: mypy
+        additional_dependencies: [types-all]
+        args: [--ignore-missing-imports]
+
+  # Security checks
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.8
+    hooks:
+      - id: bandit
+        args: [-r, ., -f, json, -o, bandit-report.json]
+        exclude: ^tests/
+
+  # General hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      # Prevent committing large files
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+      
+      # Check for merge conflicts
+      - id: check-merge-conflict
+      
+      # Check for debugger imports
+      - id: debug-statements
+      
+      # Check for private key files
+      - id: detect-private-key
+      
+      # Check for hardcoded passwords
+      - id: detect-password-in-url
+      
+      # Check file permissions
+      - id: check-executables-have-shebangs
+      
+      # Check for trailing whitespace
+      - id: trailing-whitespace
+      
+      # Check for end of file
+      - id: end-of-file-fixer
+      
+      # Check for mixed line endings
+      - id: mixed-line-ending
+      
+      # Check for YAML syntax
+      - id: check-yaml
+      
+      # Check for JSON syntax
+      - id: check-json
+      
+      # Check for TOML syntax
+      - id: check-toml
+      
+      # Check for XML syntax
+      - id: check-xml
+
+  # Commit message formatting
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v4.0.1
+    hooks:
+      - id: commitizen
+        stages: [commit-msg]
+
+  # Documentation checks
+  - repo: https://github.com/pycqa/doc8
+    rev: 1.1.1
+    hooks:
+      - id: doc8
+        args: [--max-line-length=88]
+
+  # Jupyter notebook checks
+  - repo: https://github.com/nbQA-dev/nbQA
+    rev: 1.8.2
+    hooks:
+      - id: nbqa-black
+        args: [--line-length=88]
+      - id: nbqa-isort
+        args: [--profile=black, --line-length=88]
+      - id: nbqa-flake8
+        args: [--max-line-length=88]
+
+# Global configuration
+default_language_version:
+  python: python3.11
+
+# Hook execution order
+exclude: |
+  (?x)^(
+      \.git/|
+      \.venv/|
+      \.env/|
+      build/|
+      dist/|
+      \.eggs/|
+      \.tox/|
+      \.mypy_cache/|
+      \.pytest_cache/|
+      __pycache__/|
+      \.coverage|
+      coverage\.xml|
+      bandit-report\.json
+  )$

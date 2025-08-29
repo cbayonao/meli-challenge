@@ -50,58 +50,57 @@ provider:
             - secretsmanager:GetSecretValue
           Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${self:service}-${self:provider.stage}-*"
 
-functions:
-  # Lambda function for identification spider
-  identification-spider:
-    handler: handlers/identification.handler
-    events:
-      - schedule:
-          rate: cron(0 */6 * * ? *)  # Every 6 hours
-          enabled: ${env:ENABLE_SCHEDULED_SCRAPING, 'false'}
-      - http:
-          path: /scrape/identify
-          method: post
-          cors: true
-    environment:
-      SPIDER_TYPE: identify
-      MAX_PAGES: ${env:MAX_PAGES, '20'}
-      MAX_ITEMS: ${env:MAX_ITEMS, '2000'}
+# functions:
+#   # Lambda function for identification spider
+#   identification-spider:
+#     handler: handlers/identification.handler
+#     events:
+#       - schedule:
+#           rate: cron(0 */6 * * ? *)  # Every 6 hours
+#           enabled: ${env:ENABLE_SCHEDULED_SCRAPING, 'false'}
+#       - http:
+#           path: /scrape/identify
+#           method: post
+#           cors: true
+#     environment:
+#       SPIDER_TYPE: identify
+#       MAX_PAGES: ${env:MAX_PAGES, '20'}
+#       MAX_ITEMS: ${env:MAX_ITEMS, '2000'}
 
-  # Lambda function for collection spider
-  collection-spider:
-    handler: handlers/collection.handler
-    events:
-      - sqs:
-          arn: !GetAtt ProductQueue.Arn
-          batchSize: 1
-          maximumBatchingWindow: 30
-    environment:
-      SPIDER_TYPE: collect
-      MAX_BATCHES: ${env:MAX_BATCHES, '50'}
-      MAX_MESSAGES_PER_BATCH: ${env:MAX_MESSAGES_PER_BATCH, '10'}
-      MAX_RETRIES: ${env:MAX_RETRIES, '3'}
+#   # Lambda function for collection spider
+#   collection-spider:
+#     handler: handlers/collection.handler
+#     events:
+#       - sqs:
+#           arn: !GetAtt ProductQueue.Arn
+#           batchSize: 1
+#           maximumBatchingWindow: 30
+#     environment:
+#       SPIDER_TYPE: collect
+#       MAX_BATCHES: ${env:MAX_BATCHES, '50'}
+#       MAX_MESSAGES_PER_BATCH: ${env:MAX_MESSAGES_PER_BATCH, '10'}
+#       MAX_RETRIES: ${env:MAX_RETRIES, '3'}
 
-  # Lambda function for data validation
-  data-validator:
-    handler: handlers/validation.handler
-    events:
-      - sqs:
-          arn: !GetAtt ValidationQueue.Arn
-          batchSize: 10
-          maximumBatchingWindow: 30
-    environment:
-      VALIDATION_ENABLE_AI: ${env:VALIDATION_ENABLE_AI, 'true'}
-      VALIDATION_AI_PROVIDER: ${env:VALIDATION_AI_PROVIDER, 'openai'}
+#   # Lambda function for data validation
+#   data-validator:
+#     handler: handlers/validation.handler
+#     events:
+#       - sqs:
+#           path: /scrape/identify
+#           method: post
+#           cors: true
+#     environment:
+#       VALIDATION_ENABLE_AI: ${env:VALIDATION_AI_PROVIDER, 'openai'}
 
-  # Lambda function for monitoring and alerts
-  monitoring:
-    handler: handlers/monitoring.handler
-    events:
-      - schedule:
-          rate: rate(5 minutes)
-          enabled: ${env:ENABLE_MONITORING, 'true'}
-    environment:
-      ALERT_WEBHOOK_URL: ${env:ALERT_WEBHOOK_URL}
+#   # Lambda function for monitoring and alerts
+#   monitoring:
+#     handler: handlers/monitoring.handler
+#     events:
+#       - schedule:
+#           rate: rate(5 minutes)
+#           enabled: ${env:ENABLE_MONITORING, 'true'}
+#     environment:
+#       ALERT_WEBHOOK_URL: ${env:ALERT_WEBHOOK_URL, 'not_configured'}
 
 resources:
   Resources:
@@ -144,7 +143,7 @@ resources:
       Type: AWS::SQS::Queue
       Properties:
         QueueName: ${self:service}-${self:provider.stage}-products
-        VisibilityTimeoutSeconds: 300
+        VisibilityTimeout: 300
         MessageRetentionPeriod: 1209600  # 14 days
         RedrivePolicy:
           deadLetterTargetArn: !GetAtt ProductDeadLetterQueue.Arn
@@ -172,7 +171,7 @@ resources:
       Type: AWS::SQS::Queue
       Properties:
         QueueName: ${self:service}-${self:provider.stage}-validation
-        VisibilityTimeoutSeconds: 300
+        VisibilityTimeout: 300
         MessageRetentionPeriod: 1209600  # 14 days
         Tags:
           - Key: Environment
@@ -219,26 +218,40 @@ resources:
         Name: ${self:service}-${self:provider.stage}-validation-queue-url
 
 plugins:
-  - serverless-python-requirements
   - serverless-dotenv-plugin
 
 custom:
-  pythonRequirements:
-    dockerizePip: false
-    layer:
-      name: python-deps
-      description: Python dependencies for Meli Challenge
-    noDeploy:
-      - coverage
-      - pytest
-      - black
-      - flake8
-      - mypy
+  # Python environment configuration
+  pythonBin: .venv/bin/python
+  requirementsFile: requirements.txt
+  # Package optimization - only include essential files
+  package:
+    patterns:
+      - "!**"
+      - "handlers/**"
+      - "meli_crawler/**"
+      - "validation/**"
+      - "requirements.txt"
+      - ".env"
+      - "!tests/**"
+      - "!.venv/**"
+      - "!node_modules/**"
+      - "!.git/**"
+      - "!__pycache__/**"
+      - "!*.pyc"
+      - "!.pytest_cache/**"
+      - "!.coverage"
+      - "!coverage_html/**"
+      - "!.mypy_cache/**"
+      - "!Makefile"
+      - "!README.md"
+      - "!pyproject.toml"
+      - "!deploy-local.sh"
+      - "!serverless.yml"
+      - "!serverless.dev.yml"
+      - "!serverless.prod.yml"
   dotenv:
     path: .env
     include:
-      - AWS_ACCESS_KEY_ID
-      - AWS_SECRET_ACCESS_KEY
-      - AWS_DEFAULT_REGION
       - ZYTE_API_KEY
       - OPENAI_API_KEY

@@ -1,0 +1,218 @@
+service: meli-challenge-scrapy
+
+provider:
+  name: aws
+  runtime: python3.11
+  stage: ${opt:stage, 'dev'}
+  region: ${opt:region, 'us-east-1'}
+  environment:
+    DYNAMODB_TABLE_NAME: ${self:service}-${self:provider.stage}-products
+    PRODUCT_QUEUE: !Ref ProductQueue
+    VALIDATION_QUEUE: !Ref ValidationQueue
+    ZYTE_API_KEY: ${env:ZYTE_API_KEY}
+    OPENAI_API_KEY: ${env:OPENAI_API_KEY}
+    MAX_PAGES: ${env:MAX_PAGES, '20'}
+    MAX_ITEMS: ${env:MAX_ITEMS, '2000'}
+    MAX_BATCHES: ${env:MAX_BATCHES, '50'}
+    MAX_MESSAGES_PER_BATCH: ${env:MAX_MESSAGES_PER_BATCH, '10'}
+    MAX_RETRIES: ${env:MAX_RETRIES, '3'}
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+            - dynamodb:Query
+            - dynamodb:Scan
+          Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${self:provider.environment.DYNAMODB_TABLE_NAME}"
+        - Effect: Allow
+          Action:
+            - sqs:SendMessage
+            - sqs:ReceiveMessage
+            - sqs:DeleteMessage
+            - sqs:GetQueueAttributes
+          Resource: 
+            - !GetAtt ProductQueue.Arn
+            - !GetAtt ValidationQueue.Arn
+        - Effect: Allow
+          Action:
+            - secretsmanager:GetSecretValue
+          Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${self:service}-${self:provider.stage}-*"
+
+functions:
+  # Lambda function for identification spider
+  identification-spider:
+    handler: handlers/identification.handler
+    events:
+      - schedule:
+          rate: cron(0 */6 * * ? *)  # Every 6 hours
+          enabled: ${env:ENABLE_SCHEDULED_SCRAPING, 'false'}
+      - http:
+          path: /scrape/identify
+          method: post
+          cors: true
+    timeout: 300
+    memorySize: 1024
+    environment:
+      SPIDER_TYPE: identify
+
+  # Lambda function for collection spider
+  collection-spider:
+    handler: handlers/collection.handler
+    events:
+      - sqs:
+          arn: !GetAtt ProductQueue.Arn
+          batchSize: 1
+          maximumBatchingWindow: 30
+    timeout: 300
+    memorySize: 1024
+    environment:
+      SPIDER_TYPE: collect
+
+resources:
+  Resources:
+    # DynamoDB Table for products
+    ProductsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.DYNAMODB_TABLE_NAME}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: seller_id
+            AttributeType: S
+          - AttributeName: url_id
+            AttributeType: S
+          - AttributeName: inserted_at
+            AttributeType: S
+        KeySchema:
+          - AttributeName: seller_id
+            KeyType: HASH
+          - AttributeName: url_id
+            KeyType: RANGE
+        GlobalSecondaryIndexes:
+          - IndexName: InsertedAtIndex
+            KeySchema:
+              - AttributeName: inserted_at
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+        TimeToLiveSpecification:
+          AttributeName: ttl
+          Enabled: true
+        Tags:
+          - Key: Environment
+            Value: ${self:provider.stage}
+          - Key: Service
+            Value: ${self:service}
+
+    # SQS Queue for product processing
+    ProductQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: ${self:service}-${self:provider.stage}-products
+        VisibilityTimeout: 300
+        MessageRetentionPeriod: 1209600  # 14 days
+        RedrivePolicy:
+          deadLetterTargetArn: !GetAtt ProductDeadLetterQueue.Arn
+          maxReceiveCount: 3
+        Tags:
+          - Key: Environment
+            Value: ${self:provider.stage}
+          - Key: Service
+            Value: ${self:service}
+
+    # SQS Dead Letter Queue
+    ProductDeadLetterQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: ${self:service}-${self:provider.stage}-products-dlq
+        MessageRetentionPeriod: 1209600  # 14 days
+        Tags:
+          - Key: Environment
+            Value: ${self:provider.stage}
+          - Key: Service
+            Value: ${self:service}
+
+    # SQS Queue for validation (simplified)
+    ValidationQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: ${self:service}-${self:provider.stage}-validation
+        VisibilityTimeout: 300
+        MessageRetentionPeriod: 1209600  # 14 days
+        Tags:
+          - Key: Environment
+            Value: ${self:provider.stage}
+          - Key: Service
+            Value: ${self:service}
+
+    # CloudWatch Log Group
+    LogGroup:
+      Type: AWS::Logs::LogGroup
+      Properties:
+        LogGroupName: /aws/lambda/${self:service}-${self:provider.stage}
+        RetentionInDays: 30
+
+    # Secrets Manager for API keys
+    ApiSecrets:
+      Type: AWS::SecretsManager::Secret
+      Properties:
+        Name: ${self:service}-${self:provider.stage}-api-keys
+        Description: API keys for Meli Challenge Scrapy
+        SecretString: !Sub |
+          {
+            "zyte_api_key": "${env:ZYTE_API_KEY}",
+            "openai_api_key": "${env:OPENAI_API_KEY}"
+          }
+
+  Outputs:
+    ProductsTableName:
+      Description: DynamoDB table name
+      Value: !Ref ProductsTable
+      Export:
+        Name: ${self:service}-${self:provider.stage}-table-name
+
+    ProductQueueUrl:
+      Description: SQS queue URL
+      Value: !Ref ProductQueue
+      Export:
+        Name: ${self:service}-${self:provider.stage}-queue-url
+
+    ValidationQueueUrl:
+      Description: Validation queue URL
+      Value: !Ref ValidationQueue
+      Export:
+        Name: ${self:service}-${self:provider.stage}-validation-queue-url
+
+custom:
+  # Package optimization - only include Scrapy files
+  package:
+    patterns:
+      - "!**"
+      - "handlers/**"
+      - "meli_crawler/**"
+      - "requirements-scrapy.txt"
+      - ".env"
+      - "!tests/**"
+      - "!.venv/**"
+      - "!node_modules/**"
+      - "!.git/**"
+      - "!__pycache__/**"
+      - "!*.pyc"
+      - "!.pytest_cache/**"
+      - "!.coverage"
+      - "!coverage_html/**"
+      - "!.mypy_cache/**"
+      - "!Makefile"
+      - "!README.md"
+      - "!pyproject.toml"
+      - "!deploy-local.sh"
+      - "!serverless.yml"
+      - "!serverless.dev.yml"
+      - "!serverless.prod.yml"
+      - "!validation/**"
+      - "!serverless-scrapy.yml"
+  requirementsFile: requirements-scrapy.txt

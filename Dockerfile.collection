@@ -1,0 +1,26 @@
+# Use AWS Lambda Python 3.11 base image
+FROM public.ecr.aws/lambda/python:3.11
+
+# Set working directory
+WORKDIR ${LAMBDA_TASK_ROOT}
+
+# Copy requirements first for better caching
+COPY requirements-scrapy.txt .
+
+# Install Python dependencies
+RUN pip install -r requirements-scrapy.txt
+
+# Copy application code
+COPY handlers/ ${LAMBDA_TASK_ROOT}/handlers/
+COPY meli_crawler/ ${LAMBDA_TASK_ROOT}/meli_crawler/
+
+# Copy environment configuration
+COPY .env ${LAMBDA_TASK_ROOT}/.env
+
+# Set environment variables
+ENV PYTHONPATH=${LAMBDA_TASK_ROOT}
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Set the CMD to your collection handler
+CMD ["handlers.collection.handler"]
